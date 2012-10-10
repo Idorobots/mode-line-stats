@@ -1,3 +1,10 @@
-* Usage
-#TODO Usage example.
+* Mode-line Stats
+This package contains several simple to use modules that display various system stats directly in Emacs mode-line.
+
+* Installation
+Just copy all the =.el= files into a directory in your Emacs =load-path= (such as =.emacs.d/site-lisp/=) and optionally =byte-compile-file= them.
+
 * TODOs
+- More misc stats.
+- Redo =network-stats.el=.
+- Add mode-line scrolling.
