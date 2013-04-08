@@ -90,11 +90,13 @@
 (defvar misc-stats-mode-line-string "")
 (defvar misc-stats-timer nil)
 (defvar misc-stats-formatters nil)
+(defvar misc-stats-use-global-mode-string t)
 
 (defun misc-stats-start ()
   "Start displaying misc stats in the mode-line."
   (interactive)
-  (add-to-list 'global-mode-string 'misc-stats-mode-line-string t)
+  (when misc-stats-use-global-mode-string
+    (add-to-list 'global-mode-string 'misc-stats-mode-line-string t))
   (and misc-stats-timer (cancel-timer misc-stats-timer))
   (setq misc-stats-mode-line-string "")
   (setq misc-stats-timer (run-at-time misc-update-interval
@@ -108,8 +110,9 @@
   "Stop displaying misc system stats in the mode-line."
   (interactive)
   (setq misc-stats-mode-line-string "")
-  (setq global-mode-string (delq 'misc-stats-mode-line-string
-                                 global-mode-string))
+  (when misc-stats-use-global-mode-string
+    (setq global-mode-string (delq 'misc-stats-mode-line-string
+                                   global-mode-string)))
   (setq misc-stats-timer
         (and misc-stats-timer (cancel-timer misc-stats-timer))))
 

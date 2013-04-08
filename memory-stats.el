@@ -58,6 +58,7 @@
 (defvar memory-usage-formatters nil)
 (defvar memory-usage-timer nil)
 (defvar memory-usage-mode-line-string "")
+(defvar memory-usage-use-global-mode-string t)
 
 (defgroup memory-usage nil
   "Display various memory stats in the mode-line."
@@ -89,7 +90,8 @@
 (defun memory-usage-start ()
   "Start displaying memory usage stats in the mode-line."
   (interactive)
-  (add-to-list 'global-mode-string 'memory-usage-mode-line-string t)
+  (when memory-usage-use-global-mode-string
+    (add-to-list 'global-mode-string 'memory-usage-mode-line-string t))
   (and memory-usage-timer (cancel-timer memory-usage-timer))
   (setq memory-usage-mode-line-string "")
   (setq memory-usage-timer (run-at-time memory-usage-update-interval
@@ -103,8 +105,9 @@
   "Stop displaying memory usage stats in the mode-line."
   (interactive)
   (setq memory-usage-mode-line-string "")
-  (setq global-mode-string (delq 'memory-usage-mode-line-string
-                                 global-mode-string))
+  (when memory-usage-use-global-mode-string
+    (setq global-mode-string (delq 'memory-usage-mode-line-string
+                                   global-mode-string)))
   (setq memory-usage-timer
         (and memory-usage-timer (cancel-timer memory-usage-timer))))
 
