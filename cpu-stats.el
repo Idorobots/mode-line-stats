@@ -51,6 +51,7 @@
 (defvar cpu-usage-timer nil)
 (defvar cpu-usage-mode-line-string "")
 (defvar cpu-usage-formatters nil)
+(defvar cpu-usage-use-global-mode-string t)
 
 (defgroup cpu-usage nil
   "Display various CPU stats in the mode-line."
@@ -74,7 +75,8 @@
 (defun cpu-usage-start ()
   "Start displaying CPU usage stats in the mode-line."
   (interactive)
-  (add-to-list 'global-mode-string 'cpu-usage-mode-line-string t)
+  (when cpu-usage-use-global-mode-string
+    (add-to-list 'global-mode-string 'cpu-usage-mode-line-string t))
   (and cpu-usage-timer (cancel-timer cpu-usage-timer))
   (setq cpu-usage-mode-line-string "")
   (setq *previous-stats* (read-stats))
@@ -89,8 +91,9 @@
   "Stop displaying CPU usage stats in the mode-line."
   (interactive)
   (setq cpu-usage-mode-line-string "")
-  (setq global-mode-string (delq 'cpu-usage-mode-line-string
-                                 global-mode-string))
+  (when cpu-usage-use-global-mode-string
+    (setq global-mode-string (delq 'cpu-usage-mode-line-string
+                                   global-mode-string)))
   (setq cpu-usage-timer
         (and cpu-usage-timer (cancel-timer cpu-usage-timer))))
 
