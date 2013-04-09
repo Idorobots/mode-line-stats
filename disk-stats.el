@@ -27,9 +27,13 @@
 
 ;;; Usage:
 
+;; By default, the first device found in df will be used as
+;; disk-usage-device. If you want to use a different one you
+;; can set it before calling disk-usage-start.
+
 ;; (require 'disk-stats)
 ;; (setq disk-usage-format "%p")
-;; (setq disk-usage-partition "/")
+;; (setq disk-usage-device "/dev/sda3")
 ;; (disk-usage-start)
 
 ;;; Code:
@@ -38,7 +42,7 @@
 (require 'misc-utils)
 
 (defvar disk-usage-formatters nil)
-(defvar disk-usage-partition "/")
+(defvar disk-usage-device nil)
 (defvar disk-usage-timer nil)
 (defvar disk-usage-mode-line-string "")
 (defvar disk-usage-use-global-mode-string t)
@@ -66,6 +70,9 @@
   (interactive)
   (when disk-usage-use-global-mode-string
     (add-to-list 'global-mode-string 'disk-usage-mode-line-string t))
+
+  (unless disk-usage-device
+    (setq disk-usage-device (caar (disk-stats))))
 
   (and disk-usage-timer (cancel-timer disk-usage-timer))
   (setq disk-usage-mode-line-string "")
@@ -109,13 +116,13 @@
   (list
     ; Percentile DISK usage.
     (cons "p" (lambda (stats)
-                (number-to-string (nth 4 (assoc disk-usage-partition stats)))))
+                (number-to-string (nth 4 (assoc disk-usage-device stats)))))
     (cons "u" (lambda (stats)
-                (number-to-string (nth 2 (assoc disk-usage-partition stats)))))
+                (number-to-string (nth 2 (assoc disk-usage-device stats)))))
     (cons "f" (lambda (stats)
-                (number-to-string (nth 3 (assoc disk-usage-partition stats)))))
+                (number-to-string (nth 3 (assoc disk-usage-device stats)))))
     (cons "t" (lambda (stats)
-                (number-to-string (nth 1 (assoc disk-usage-partition stats)))))))
+                (number-to-string (nth 1 (assoc disk-usage-device stats)))))))
 
 (provide 'disk-stats)
 
