@@ -337,6 +337,9 @@ it will return the face of the current level."
               (equal (number-to-string (string-to-number value))
                      value))
          (string-to-number value))
+        ((and (stringp value)
+              (floatp (string-to-number value)))
+         (string-to-number (replace-regexp-in-string "0*$" "" value)))
         ((or (stringp value) (numberp value))
          value)))
 
@@ -357,7 +360,9 @@ COMMENT additional text to be propertized and displayed."
           (setq color (mls-get-face levels value module-fmt-type))
 
           (if (numberp value)
-              (setq value-fmt "%2d")
+              (cond ((floatp value) (setq value-fmt "%.2f"))
+                    ((equal comment "%%") (setq value-fmt "%2d"))
+                    (t (setq value-fmt "%d")))
             (setq value-fmt "%s"))
 
           (unless hide-value-p
