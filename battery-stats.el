@@ -28,8 +28,8 @@
 ;;; Usage:
 
 ;; (require 'battery-stats)
-;; (setq battery-usage-format "%p")
-;; (battery-usage-start)
+;; (setq battery-stats-format "%p")
+;; (battery-stats-start)
 
 ;;; Commentary:
 
@@ -38,25 +38,24 @@
 (require 'cl)
 (require 'misc-utils)
 
-(defvar battery-usage-formatters nil)
-(defvar battery-usage-device nil)
-(defvar battery-usage-timer nil)
-(defvar battery-usage-mode-line-string "")
-(defvar battery-usage-use-global-mode-string t)
+(defvar battery-stats-formatters nil)
+(defvar battery-stats-timer nil)
+(defvar battery-stats-mode-line-string "")
+(defvar battery-stats-use-global-mode-string t)
 
-(defvar battery-usage-battery-format "%c %r %B %d %L %p %m %h %t")
+(defvar battery-stats-battery-format "%c %r %B %d %L %p %m %h %t")
 
-(defgroup battery-usage nil
+(defgroup battery-stats nil
   "Display various disk stats in the mode-line."
-  :group 'battery-usage)
+  :group 'battery-stats)
 
-(defcustom battery-usage-update-interval 15
+(defcustom battery-stats-update-interval 15
   "Number of seconds between disk stats recalculation."
   :type 'number
-  :group 'battery-usage)
+  :group 'battery-stats)
 
 
-(defcustom battery-usage-format "%p %t %r"
+(defcustom battery-stats-format "%p %t %r"
   "Format string:
 %c Current capacity (mAh or mWh)
 %r Current rate of charge or discharge
@@ -70,49 +69,49 @@
 %h Remaining time (to charge or discharge) in hours
 %t Remaining time (to charge or discharge) in the form `h:min'"
   :type 'string
-  :group 'battery-usage)
+  :group 'battery-stats)
 
-(defun battery-usage-start ()
+(defun battery-stats-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
 
-  (setq battery-mode-line-format battery-usage-battery-format)
+  (setq battery-mode-line-format battery-stats-battery-format)
   (display-battery-mode)
   (setq global-mode-string (delq 'battery-mode-line-string
                                  global-mode-string))
-  (when battery-usage-use-global-mode-string
-    (add-to-list 'global-mode-string 'battery-usage-mode-line-string t))
+  (when battery-stats-use-global-mode-string
+    (add-to-list 'global-mode-string 'battery-stats-mode-line-string t))
 
-  (and battery-usage-timer (cancel-timer battery-usage-timer))
-  (setq battery-usage-mode-line-string "")
-  (setq battery-usage-timer (run-at-time battery-usage-update-interval
-                                        battery-usage-update-interval
+  (and battery-stats-timer (cancel-timer battery-stats-timer))
+  (setq battery-stats-mode-line-string "")
+  (setq battery-stats-timer (run-at-time battery-stats-update-interval
+                                        battery-stats-update-interval
                                         (lambda ()
-                                          (setq battery-usage-mode-line-string (battery-usage))
+                                          (setq battery-stats-mode-line-string (battery-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun battery-usage-stop ()
+(defun battery-stats-stop ()
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
-  (setq battery-usage-mode-line-string "")
-  (when battery-usage-use-global-mode-string
-    (setq global-mode-string (delq 'battery-usage-mode-line-string
+  (setq battery-stats-mode-line-string "")
+  (when battery-stats-use-global-mode-string
+    (setq global-mode-string (delq 'battery-stats-mode-line-string
                                    global-mode-string)))
-  (setq battery-usage-timer
-        (and battery-usage-timer (cancel-timer battery-usage-timer)))
+  (setq battery-stats-timer
+        (and battery-stats-timer (cancel-timer battery-stats-timer)))
   (display-battery-mode -1))
 
-(defun battery-usage ()
-  ""
-  (format-battery-usage battery-usage-format))
-
-(defun format-battery-usage (format)
-  ""
-  (let ((stats (battery-stats)))
-    (format-expand battery-usage-formatters format stats)))
-
 (defun battery-stats ()
+  ""
+  (format-battery-stats battery-stats-format))
+
+(defun format-battery-stats (format)
+  ""
+  (let ((stats (battery-stats-fetch)))
+    (format-expand battery-stats-formatters format stats)))
+
+(defun battery-stats-fetch ()
   "Return a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -122,7 +121,7 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq battery-usage-formatters
+(setq battery-stats-formatters
   (list
     (cons "c" (lambda (stats)
                 (car (nth 0 stats))))
