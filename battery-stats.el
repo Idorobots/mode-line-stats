@@ -45,6 +45,17 @@
 
 (defvar battery-stats-battery-format "%c %r %B %d %L %p %m %h %t")
 
+(defvar battery-stats-settings
+  '((:formats
+     ((:primary "&p{b}")
+      (:secondary "BAT[%p{%%}]")
+      (:monitor "&p")))
+    (:levels
+     (("%p" ((75.0 "norm")
+             (35.0 "warn")
+             (0.0  "crit"))))))
+  "BATTERY stats settings.")
+
 (defgroup battery-stats nil
   "Display various disk stats in the mode-line."
   :group 'battery-stats)

@@ -60,6 +60,20 @@
 (defvar memory-stats-mode-line-string "")
 (defvar memory-stats-use-global-mode-string t)
 
+(defvar memory-stats-settings
+  '((:formats
+     ((:primary "&R{m}")
+      (:secondary "MEM[%R{%%}] SWAP[%S{%%}]")
+      (:monitor "&R")))
+    (:levels
+     (("%R" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm")))
+      ("%S" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm"))))))
+  "MEMORY stats settings.")
+
 (defgroup memory-stats nil
   "Display various memory stats in the mode-line."
   :group 'memory-stats)

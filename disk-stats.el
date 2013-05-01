@@ -47,6 +47,17 @@
 (defvar disk-stats-mode-line-string "")
 (defvar disk-stats-use-global-mode-string t)
 
+(defvar disk-stats-settings
+  '((:formats
+     ((:primary "&p{d}")
+      (:secondary "DISK[%p{%%}]")
+      (:monitor "&p")))
+    (:levels
+     (("%p" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm"))))))
+  "DISK stats settings.")
+
 (defgroup disk-stats nil
   "Display various disk stats in the mode-line."
   :group 'disk-stats)

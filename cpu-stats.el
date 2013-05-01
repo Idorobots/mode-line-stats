@@ -53,6 +53,23 @@
 (defvar cpu-stats-formatters nil)
 (defvar cpu-stats-use-global-mode-string t)
 
+(defvar cpu-stats-settings
+  '((:formats
+     ((:primary "&A{c}")
+      (:secondary "CPU[%C0{%%},%C1{%%}]")
+      (:monitor "&A")))
+    (:levels
+     (("%A" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm")))
+      ("%C0" ((90.0 "crit")
+              (50.0 "warn")
+              (0.0  "norm")))
+      ("%C1" ((90.0 "crit")
+              (50.0 "warn")
+              (0.0  "norm"))))))
+  "CPU stats settings.")
+
 (defgroup cpu-stats nil
   "Display various CPU stats in the mode-line."
   :group 'cpu-stats)

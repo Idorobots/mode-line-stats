@@ -226,59 +226,6 @@ but it will be restored after that.")
 (defvar mls-no-data-string "?"
   "String to show while loading data.")
 
-(defvar mls-cpu-alist
-  '((:formats
-     ((:primary "&A{c}")
-      (:secondary "CPU[%C0{%%},%C1{%%}]")
-      (:monitor "&A")))
-    (:levels
-     (("%A" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm")))
-      ("%C0" ((90.0 "crit")
-              (50.0 "warn")
-              (0.0  "norm")))
-      ("%C1" ((90.0 "crit")
-              (50.0 "warn")
-              (0.0  "norm"))))))
-  "CPU stats settings.")
-
-(defvar mls-memory-alist
-  '((:formats
-     ((:primary "&R{m}")
-      (:secondary "MEM[%R{%%}] SWAP[%S{%%}]")
-      (:monitor "&R")))
-    (:levels
-     (("%R" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm")))
-      ("%S" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm"))))))
-  "MEMORY stats settings.")
-
-(defvar mls-disk-alist
-  '((:formats
-     ((:primary "&p{d}")
-      (:secondary "DISK[%p{%%}]")
-      (:monitor "&p")))
-    (:levels
-     (("%p" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm"))))))
-  "DISK stats settings.")
-
-(defvar mls-battery-alist
-  '((:formats
-     ((:primary "&p{b}")
-      (:secondary "BAT[%p{%%}]")
-      (:monitor "&p")))
-    (:levels
-     (("%p" ((75.0 "norm")
-             (35.0 "warn")
-             (0.0  "crit"))))))
-  "BATTERY stats settings.")
-
 (defun mls-set-setting (list keys value)
   "Set a value in the settings alist.
 Given an alist of settings LIST and a list of KEYS set the VALUE.
@@ -525,7 +472,7 @@ VALUES: a list of values used to get the current level"
         (var-global-mode-string (intern (format "%s-stats-use-global-mode-string" module-name)))
         (var-fmt (intern (format "%s-stats-format" module-name)))
         (var-start (intern (format "%s-stats-start" module-name)))
-        (var-settings (intern (format "mls-%s-alist" module-name)))
+        (var-settings (intern (format "%s-stats-settings" module-name)))
         (module-file (intern (format "%s-stats" module-name))))
 
     (when found
@@ -550,7 +497,7 @@ MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
       (setq mode-line-string (intern
                               (format "%s-stats-mode-line-string" module-name)))
       (setq module-alist-sym (intern
-                              (format "mls-%s-alist" module-name)))
+                              (format "%s-stats-settings" module-name)))
       (setq data (split-string (symbol-value mode-line-string)))
 
       (setq module-alist-value (symbol-value module-alist-sym))
