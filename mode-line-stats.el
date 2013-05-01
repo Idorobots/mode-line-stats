@@ -40,7 +40,7 @@
 
 ;; * Change the default keybinding for toggle mode-lines
 ;;
-;;    (setq mls-toggle-key (kbd "C-º")
+;;    (setq mls-toggle-key (kbd "C-º"))
 
 ;; * Configure which modules are enabled
 ;;
@@ -49,10 +49,10 @@
 ;; * Module settings
 ;;
 ;;    Each module have an alist of settings with a specific name.
-;;    For cpu module is 'mls-cpu-alist'.
+;;    For cpu module is 'cpu-stats-settings'.
 ;;    This alist have the following structure:
 ;;
-;;    (setq mls-cpu-alist
+;;    (setq cpu-stats-settings
 ;;      '((:formats
 ;;         ((:primary "&A{c}")
 ;;          (:secondary "CPU[%C0{%%},%C1{%%}]")
@@ -74,7 +74,7 @@
 ;;    call a hook.
 ;;
 ;;    :levels contains an alist with the levels of each formatter.
-;;    The values of a level are matched in sequencial order appying
+;;    The values of a level are matched in sequencial order applying
 ;;    a 'greather than' comparator with the current value.  Each level
 ;;    has a face defined.  For example:
 ;;      "mls-crit-primary-face" for primary mode-line.
