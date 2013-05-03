@@ -195,25 +195,10 @@ but it will be restored after that.")
   "Critical face used in secondary mode-line."
   :group 'mode-line-stats)
 
-(defvar mls-mode-line-format-secondary
-  (list
-   '(" ")
-   '(:eval (mls-display "battery" :secondary))
-   '(" ")
-   '(:eval (mls-display "cpu" :secondary))
-   '(" ")
-   '(:eval (mls-display "disk" :secondary))
-   '(" ")
-   '(:eval (mls-display "memory" :secondary)))
+(defvar mls-mode-line-format-secondary nil
   "Mode line format to show stats.")
 
-(defvar mls-mode-line-format-primary
-  (list
-   '(" ")
-   '(:eval (mls-display "battery" :primary))
-   '(:eval (mls-display "cpu" :primary))
-   '(:eval (mls-display "disk" :primary))
-   '(:eval (mls-display "memory" :primary)))
+(defvar mls-mode-line-format-primary nil
   "Primary mode line format.
 \(this will be appended in the default mode-line\)")
 
@@ -555,9 +540,25 @@ FMT-TYPE should be the mode line format type.
 
 (defun mls-mode-line-setup ()
   "Add mode-line-stats format into currrent mode-line."
+  (unless mls-mode-line-format-primary
+    (mls-generate-mode-line-format :primary))
+
+  (unless mls-mode-line-format-secondary
+    (mls-generate-mode-line-format :secondary))
+
   (setq mls-mode-line-format
         (cons mls-mode-line-format-primary
               mls-mode-line-format-backup)))
+
+(defun mls-generate-mode-line-format (fmt-type)
+  "Generate the mode line format for FMT-TYPE using `mls-modules`."
+  (let ((mode-line-format-sym (if (eq fmt-type :primary)
+                                  'mls-mode-line-format-primary
+                                'mls-mode-line-format-secondary))
+        (modules (reverse mls-modules)))
+    (dolist (module-sym modules)
+      (push `(:eval (mls-display ,(symbol-name module-sym) ,fmt-type))
+            (symbol-value mode-line-format-sym)))))
 
 (defun mls-turn-on ()
   "Turn on mode-line-stats mode."
@@ -568,8 +569,7 @@ FMT-TYPE should be the mode line format type.
   (dolist (module-sym mls-modules)
     (mls-enable-module module-sym))
 
-  (when mls-mode-line-format-primary
-    (mls-mode-line-setup))
+  (mls-mode-line-setup)
 
   (mls-mode-line-switch-to :primary))
 
