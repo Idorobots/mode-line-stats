@@ -50,7 +50,7 @@
 (defvar disk-stats-settings
   '((:formats
      ((:primary "&p{d}")
-      (:secondary "DISK[%p{%%}]")
+      (:secondary " DISK[%p{%%}]")
       (:monitor "&p")))
     (:levels
      (("%p" ((90.0 "crit")

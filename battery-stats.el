@@ -48,7 +48,7 @@
 (defvar battery-stats-settings
   '((:formats
      ((:primary "&p{b}")
-      (:secondary "BAT[%p{%%}]")
+      (:secondary " BAT[%p{%%}]")
       (:monitor "&p")))
     (:levels
      (("%p" ((75.0 "norm")

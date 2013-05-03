@@ -95,7 +95,7 @@
 (defvar misc-stats-settings
   '((:formats
      ((:primary "&L1{l}")
-      (:secondary "LOAD[%L]")
+      (:secondary " LOAD[%L]")
       (:monitor "&L1")))
     (:levels
      (("%L1" ((2.0 "crit")

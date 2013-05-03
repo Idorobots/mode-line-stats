@@ -56,7 +56,7 @@
 (defvar cpu-stats-settings
   '((:formats
      ((:primary "&A{c}")
-      (:secondary "CPU[%C0{%%},%C1{%%}]")
+      (:secondary " CPU[%C0{%%},%C1{%%}]")
       (:monitor "&A")))
     (:levels
      (("%A" ((90.0 "crit")

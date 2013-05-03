@@ -63,7 +63,7 @@
 (defvar memory-stats-settings
   '((:formats
      ((:primary "&R{m}")
-      (:secondary "MEM[%R{%%}] SWAP[%S{%%}]")
+      (:secondary " MEM[%R{%%}] SWAP[%S{%%}]")
       (:monitor "&R")))
     (:levels
      (("%R" ((90.0 "crit")
