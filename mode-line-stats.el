@@ -147,6 +147,11 @@
 (defvar mls-modules '(battery cpu memory disk)
   "Modules enabled.")
 
+(defvar mls-position :left
+  "Set the position of mls.
+Available values are :left, :right, :header-line and
+:global-mode-string.")
+
 (defvar mls-monitor-hook nil
   "Hook to run after the monitor format is processed.
 The hook function will receive the params corresponding to
@@ -195,18 +200,18 @@ but it will be restored after that.")
   "Critical face used in secondary mode-line."
   :group 'mode-line-stats)
 
-(defvar mls-mode-line-format-secondary nil
-  "Mode line format to show stats.")
+(defvar mls-format-secondary nil
+  "Secondary format to show stats.")
 
-(defvar mls-mode-line-format-primary nil
-  "Primary mode line format.
-\(this will be appended in the default mode-line\)")
+(defvar mls-format-primary nil
+  "Primary format to show stats.
+\(this will be appended in the default mode-line or header-line\)")
 
-(defvar mls-mode-line-format nil
+(defvar mls-format nil
   "Contains the original mode line plus the primary one.")
 
-(defvar mls-mode-line-format-backup nil
-  "Backup original mode line.")
+(defvar mls-format-backup nil
+  "Backup original format \(mode-line or header-line\).")
 
 (defvar mls-no-data-string "?"
   "String to show while loading data.")
@@ -504,57 +509,83 @@ MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
 
       output)))
 
-(defun mls-backup-mode-line-format ()
+(defun mls-get-target-format-sym ()
+  "Get the format symbol acording to mls-position.
+If `mls-position is :left, :right and :global-mode-string
+it will return  'mode-line-format.  Otherwise will return
+'header-line-format."
+  (if (eq mls-position :header-line)
+      'header-line-format
+    'mode-line-format))
+
+(defun mls-backup-format ()
   "Backup the current 'mode-line-format'."
-  (setq mls-mode-line-format-backup mode-line-format))
+  (let ((fmt (symbol-value (mls-get-target-format-sym))))
+    (setq mls-format-backup fmt)))
 
-(defun mls-restore-mode-line-format ()
+(defun mls-restore-format ()
   "Restore the backup of 'mode-line-format'."
-  (setq-default mode-line-format mls-mode-line-format-backup)
-
-  (setq mode-line-format mls-mode-line-format-backup)
-  (setq mls-mode-line-format-backup nil)
-  (force-mode-line-update))
+  (let ((target (mls-get-target-format-sym)))
+    (set-default target mls-format-backup)
+    (set target mls-format-backup)
+    (setq mls-format-backup nil)
+    (force-mode-line-update)))
 
 (defun mls-mode-line-switch-to (&optional fmt-type)
   "Switch mode-line formats.
 FMT-TYPE should be the mode line format type.
  Either :primary or :secondary"
-  (if (eq fmt-type :secondary)
+  (let ((target (mls-get-target-format-sym)))
+    (if (eq fmt-type :secondary)
+        (set target mls-format-secondary)
       (progn
-        (setq mode-line-format mls-mode-line-format-secondary))
-    (progn
-      (setq-default mode-line-format mls-mode-line-format)
-      (setq mode-line-format mls-mode-line-format))))
+        (set-default target mls-format)
+        (set target mls-format)))))
 
 (defun mls-mode-line-toggle ()
   "Toggle the mode line format."
   (interactive)
+  (let ((fmt (symbol-value (mls-get-target-format-sym))))
+    (if (eq fmt mls-format)
+        (mls-mode-line-switch-to :secondary)
+      (mls-mode-line-switch-to :primary))
 
-  (if (eq mode-line-format mls-mode-line-format)
-      (mls-mode-line-switch-to :secondary)
-    (mls-mode-line-switch-to :primary))
+    ;; Update the mode line
+    (force-mode-line-update)))
 
-  ;; Update the mode line
-  (force-mode-line-update))
+(defun mls-set-position (position)
+  "Set the POSITION for mls."
+  (cond ((eq position :left)
+         (setq mls-format
+               (cons mls-format-primary
+                     mls-format-backup)))
+        ((eq position :right)
+         (setq mls-format mls-format-backup)
+         (setf (cdr (last mls-format)) mls-format-primary))
+        ((eq position :global-mode-string)
+         (push " " global-mode-string)
+         (push mls-format-primary global-mode-string)
+         (setq mls-format mls-format-backup))
+        ((eq position :header-line)
+         (setq mls-format
+               (cons mls-format-primary
+                     mls-format-backup)))))
 
 (defun mls-mode-line-setup ()
   "Add mode-line-stats format into currrent mode-line."
-  (unless mls-mode-line-format-primary
+  (unless mls-format-primary
     (mls-generate-mode-line-format :primary))
 
-  (unless mls-mode-line-format-secondary
+  (unless mls-format-secondary
     (mls-generate-mode-line-format :secondary))
 
-  (setq mls-mode-line-format
-        (cons mls-mode-line-format-primary
-              mls-mode-line-format-backup)))
+  (mls-set-position mls-position))
 
 (defun mls-generate-mode-line-format (fmt-type)
   "Generate the mode line format for FMT-TYPE using `mls-modules`."
   (let ((mode-line-format-sym (if (eq fmt-type :primary)
-                                  'mls-mode-line-format-primary
-                                'mls-mode-line-format-secondary))
+                                  'mls-format-primary
+                                'mls-format-secondary))
         (modules (reverse mls-modules)))
     (dolist (module-sym modules)
       (push `(:eval (mls-display ,(symbol-name module-sym) ,fmt-type))
@@ -563,8 +594,8 @@ FMT-TYPE should be the mode line format type.
 (defun mls-turn-on ()
   "Turn on mode-line-stats mode."
   ;; Backup mode line
-  (unless mls-mode-line-format-backup
-    (mls-backup-mode-line-format))
+  (unless mls-format-backup
+    (mls-backup-format))
 
   (dolist (module-sym mls-modules)
     (mls-enable-module module-sym))
@@ -575,7 +606,7 @@ FMT-TYPE should be the mode line format type.
 
 (defun mls-turn-off ()
   "Turn off mode-line-stats mode."
-  (mls-restore-mode-line-format)
+  (mls-restore-format)
 
   (dolist (module-sym mls-modules)
     (mls-disable-module module-sym)))
