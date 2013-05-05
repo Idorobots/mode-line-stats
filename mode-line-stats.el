@@ -509,14 +509,26 @@ MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
 
       output)))
 
-(defun mls-get-target-format-sym ()
-  "Get the format symbol acording to mls-position.
-If `mls-position is :left, :right and :global-mode-string
-it will return  'mode-line-format.  Otherwise will return
-'header-line-format."
+(defun mls-get-header-or-mode-line-format-sym ()
+  "Get header or mode-line symbol acording to mls-position.
+If `mls-position is :left, :right or :global-mode-string
+it will return  `mode-line-format`.  Otherwise will return
+`header-line-format`."
   (if (eq mls-position :header-line)
       'header-line-format
     'mode-line-format))
+
+(defun mls-get-target-format-sym ()
+  "Get the format symbol acording to mls-position.
+If `mls-position is :left or :right it will return
+'mode-line-format.  For :global-mode-string it will
+return 'global-mode-string and for :header-line it
+will return 'header-line-format."
+  (cond ((eq mls-position :header-line)
+         'header-line-format)
+        ((eq mls-position :global-mode-string)
+         'global-mode-string)
+        (t 'mode-line-format)))
 
 (defun mls-backup-format ()
   "Backup the current 'mode-line-format'."
@@ -535,7 +547,7 @@ it will return  'mode-line-format.  Otherwise will return
   "Switch mode-line formats.
 FMT-TYPE should be the mode line format type.
  Either :primary or :secondary"
-  (let ((target (mls-get-target-format-sym)))
+  (let ((target (mls-get-header-or-mode-line-format-sym)))
     (if (eq fmt-type :secondary)
         (set target mls-format-secondary)
       (progn
@@ -545,7 +557,7 @@ FMT-TYPE should be the mode line format type.
 (defun mls-mode-line-toggle ()
   "Toggle the mode line format."
   (interactive)
-  (let ((fmt (symbol-value (mls-get-target-format-sym))))
+  (let ((fmt (symbol-value (mls-get-header-or-mode-line-format-sym))))
     (if (eq fmt mls-format)
         (mls-mode-line-switch-to :secondary)
       (mls-mode-line-switch-to :primary))
@@ -560,12 +572,12 @@ FMT-TYPE should be the mode line format type.
                (cons mls-format-primary
                      mls-format-backup)))
         ((eq position :right)
-         (setq mls-format mls-format-backup)
+         (setq mls-format (copy-tree mls-format-backup))
          (setf (cdr (last mls-format)) mls-format-primary))
         ((eq position :global-mode-string)
          (push " " global-mode-string)
          (push mls-format-primary global-mode-string)
-         (setq mls-format mls-format-backup))
+         (setq mls-format mode-line-format))
         ((eq position :header-line)
          (setq mls-format
                (cons mls-format-primary
