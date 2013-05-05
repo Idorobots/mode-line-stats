@@ -614,7 +614,9 @@ FMT-TYPE should be the mode line format type.
 
   (mls-mode-line-setup)
 
-  (mls-mode-line-switch-to :primary))
+  (mls-mode-line-switch-to :primary)
+
+  (mls-keymap-setup))
 
 (defun mls-turn-off ()
   "Turn off mode-line-stats mode."
@@ -623,12 +625,13 @@ FMT-TYPE should be the mode line format type.
   (dolist (module-sym mls-modules)
     (mls-disable-module module-sym)))
 
-(defvar mode-line-stats-mode-map
-  (let ((map (make-sparse-keymap)))
-    ;; key bindings
-    (define-key map mls-toggle-key 'mls-mode-line-toggle)
-    map)
+(defvar mode-line-stats-mode-map (make-keymap)
   "Keymap for mode-line-stats mode.")
+
+(defun mls-keymap-setup ()
+  "Init the keymap"
+;; key bindings
+  (define-key mode-line-stats-mode-map mls-toggle-key 'mls-mode-line-toggle))
 
 (define-minor-mode mode-line-stats-mode
   "Show stats in mode-line."
