@@ -1,4 +1,4 @@
-;;; battery-stats.el --- display various disk stats in the mode-line  -*- coding: mule-utf-8 -*-
+;;; battery-stats.el --- display various battery stats in the mode-line  -*- coding: mule-utf-8 -*-
 
 ;; This file is not part of Emacs
 
