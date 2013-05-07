@@ -144,7 +144,7 @@
 (defconst mls-modules-available '(battery cpu memory disk misc)
   "Modules available to use.")
 
-(defvar mls-modules '(battery cpu memory disk misc)
+(defvar mls-modules '(cpu memory disk misc)
   "Modules enabled.")
 
 (defvar mls-position :left
