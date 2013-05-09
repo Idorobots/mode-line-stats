@@ -32,75 +32,86 @@
 ;; can set it before calling disk-usage-start.
 
 ;; (require 'disk-stats)
-;; (setq disk-usage-format "%p")
-;; (setq disk-usage-device "/dev/sda3")
-;; (disk-usage-start)
+;; (setq disk-stats-format "%p")
+;; (setq disk-stats-device "/dev/sda3")
+;; (disk-stats-start)
 
 ;;; Code:
 
 (require 'cl)
 (require 'misc-utils)
 
-(defvar disk-usage-formatters nil)
-(defvar disk-usage-device nil)
-(defvar disk-usage-timer nil)
-(defvar disk-usage-mode-line-string "")
-(defvar disk-usage-use-global-mode-string t)
+(defvar disk-stats-formatters nil)
+(defvar disk-stats-device nil)
+(defvar disk-stats-timer nil)
+(defvar disk-stats-mode-line-string "")
+(defvar disk-stats-use-global-mode-string t)
 
-(defgroup disk-usage nil
+(defvar disk-stats-settings
+  '((:formats
+     ((:primary "&p{d}")
+      (:secondary " DISK[%p{%%}]")
+      (:monitor "&p")))
+    (:levels
+     (("%p" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm"))))))
+  "DISK stats settings.")
+
+(defgroup disk-stats nil
   "Display various disk stats in the mode-line."
-  :group 'disk-usage)
+  :group 'disk-stats)
 
-(defcustom disk-usage-update-interval 15
+(defcustom disk-stats-update-interval 15
   "Number of seconds between disk stats recalculation."
   :type 'number
-  :group 'disk-usage)
+  :group 'disk-stats)
 
-(defcustom disk-usage-format "%p"
+(defcustom disk-stats-format "%p"
   "Format string:
 %p - Percentile used DISK space.
 %u - Used space (in KB).
 %f - Free space (in KB).
 %t - Total space (in KB)."
   :type 'string
-  :group 'disk-usage)
+  :group 'disk-stats)
 
-(defun disk-usage-start ()
+(defun disk-stats-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
-  (when disk-usage-use-global-mode-string
-    (add-to-list 'global-mode-string 'disk-usage-mode-line-string t))
+  (when disk-stats-use-global-mode-string
+    (add-to-list 'global-mode-string 'disk-stats-mode-line-string t))
 
-  (unless disk-usage-device
-    (setq disk-usage-device (caar (disk-stats))))
+  (unless disk-stats-device
+    (setq disk-stats-device (caar (disk-stats-fetch))))
 
-  (and disk-usage-timer (cancel-timer disk-usage-timer))
-  (setq disk-usage-mode-line-string "")
-  (setq disk-usage-timer (run-at-time disk-usage-update-interval
-                                        disk-usage-update-interval
+  (and disk-stats-timer (cancel-timer disk-stats-timer))
+  (setq disk-stats-mode-line-string "")
+  (setq disk-stats-timer (run-at-time disk-stats-update-interval
+                                        disk-stats-update-interval
                                         (lambda ()
-                                          (setq disk-usage-mode-line-string (disk-usage))
+                                          (setq disk-stats-mode-line-string (disk-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun disk-usage-stop ()
+(defun disk-stats-stop ()
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
-  (setq disk-usage-mode-line-string "")
-  (when disk-usage-use-global-mode-string
-    (setq global-mode-string (delq 'disk-usage-mode-line-string
+  (setq disk-stats-mode-line-string "")
+  (when disk-stats-use-global-mode-string
+    (setq global-mode-string (delq 'disk-stats-mode-line-string
                                    global-mode-string)))
-  (setq disk-usage-timer
-        (and disk-usage-timer (cancel-timer disk-usage-timer))))
-
-(defun disk-usage ()
-  (format-disk-usage disk-usage-format))
-
-(defun format-disk-usage (format)
-  (let ((stats (disk-stats)))
-    (format-expand disk-usage-formatters format stats)))
+  (setq disk-stats-timer
+        (and disk-stats-timer (cancel-timer disk-stats-timer))))
 
 (defun disk-stats ()
+  (format-disk-stats disk-stats-format))
+
+(defun format-disk-stats (format)
+  (let ((stats (disk-stats-fetch)))
+    (format-expand disk-stats-formatters format stats)))
+
+(defun disk-stats-fetch ()
   "Returns a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -112,17 +123,17 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq disk-usage-formatters
+(setq disk-stats-formatters
   (list
     ; Percentile DISK usage.
     (cons "p" (lambda (stats)
-                (number-to-string (nth 4 (assoc disk-usage-device stats)))))
+                (number-to-string (nth 4 (assoc disk-stats-device stats)))))
     (cons "u" (lambda (stats)
-                (number-to-string (nth 2 (assoc disk-usage-device stats)))))
+                (number-to-string (nth 2 (assoc disk-stats-device stats)))))
     (cons "f" (lambda (stats)
-                (number-to-string (nth 3 (assoc disk-usage-device stats)))))
+                (number-to-string (nth 3 (assoc disk-stats-device stats)))))
     (cons "t" (lambda (stats)
-                (number-to-string (nth 1 (assoc disk-usage-device stats)))))))
+                (number-to-string (nth 1 (assoc disk-stats-device stats)))))))
 
 (provide 'disk-stats)
 

@@ -92,6 +92,20 @@
 (defvar misc-stats-formatters nil)
 (defvar misc-stats-use-global-mode-string t)
 
+(defvar misc-stats-settings
+  '((:formats
+     ((:primary "&L1{l}")
+      (:secondary " LOAD[%L]")
+      (:monitor "&L1")))
+    (:levels
+     (("%L1" ((2.0 "crit")
+              (1.0 "warn")
+              (0.0  "norm")))
+      ("%L" ((2.0 "crit")
+             (1.0 "warn")
+             (0.0  "norm"))))))
+  "MISC stats settings.")
+
 (defun misc-stats-start ()
   "Start displaying misc stats in the mode-line."
   (interactive)

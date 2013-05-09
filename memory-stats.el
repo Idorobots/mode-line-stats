@@ -25,12 +25,12 @@
 ;;; Usage:
 
 ;; (require 'memory-stats)
-;; (memory-usage-start)
+;; (memory-stats-start)
 
 
 ;; There are a few variables to tweak:
-;;   `memory-usage-update-interval' - Time interval after which current memory stats are updated.
-;;   `memory-usage-format' - A string format used in the mode-line.
+;;   `memory-stats-update-interval' - Time interval after which current memory stats are updated.
+;;   `memory-stats-format' - A string format used in the mode-line.
 ;;                      Supports the following escape sequences:
 ;;      %r - Percentile main RAM usage.
 ;;      %R - Percentile main RAM usage (no buffers or cache).
@@ -55,21 +55,35 @@
 (require 'cl)
 (require 'misc-utils)
 
-(defvar memory-usage-formatters nil)
-(defvar memory-usage-timer nil)
-(defvar memory-usage-mode-line-string "")
-(defvar memory-usage-use-global-mode-string t)
+(defvar memory-stats-formatters nil)
+(defvar memory-stats-timer nil)
+(defvar memory-stats-mode-line-string "")
+(defvar memory-stats-use-global-mode-string t)
 
-(defgroup memory-usage nil
+(defvar memory-stats-settings
+  '((:formats
+     ((:primary "&R{m}")
+      (:secondary " MEM[%R{%%}] SWAP[%S{%%}]")
+      (:monitor "&R")))
+    (:levels
+     (("%R" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm")))
+      ("%S" ((90.0 "crit")
+             (50.0 "warn")
+             (0.0  "norm"))))))
+  "MEMORY stats settings.")
+
+(defgroup memory-stats nil
   "Display various memory stats in the mode-line."
-  :group 'memory-usage)
+  :group 'memory-stats)
 
-(defcustom memory-usage-update-interval 2
+(defcustom memory-stats-update-interval 2
   "Number of seconds between memory stats recalculation."
   :type 'number
-  :group 'memory-usage)
+  :group 'memory-stats)
 
-(defcustom memory-usage-format "%R %S"
+(defcustom memory-stats-format "%R %S"
   "Format string:
 %r - Percentile main RAM usage.
 %R - Percentile main RAM usage (no buffers or cache).
@@ -85,40 +99,40 @@
 %Su - Used swap in MB.
 %Sf - Free swap in MB."
   :type 'string
-  :group 'memory-usage)
+  :group 'memory-stats)
 
-(defun memory-usage-start ()
+(defun memory-stats-start ()
   "Start displaying memory usage stats in the mode-line."
   (interactive)
-  (when memory-usage-use-global-mode-string
-    (add-to-list 'global-mode-string 'memory-usage-mode-line-string t))
-  (and memory-usage-timer (cancel-timer memory-usage-timer))
-  (setq memory-usage-mode-line-string "")
-  (setq memory-usage-timer (run-at-time memory-usage-update-interval
-                                        memory-usage-update-interval
+  (when memory-stats-use-global-mode-string
+    (add-to-list 'global-mode-string 'memory-stats-mode-line-string t))
+  (and memory-stats-timer (cancel-timer memory-stats-timer))
+  (setq memory-stats-mode-line-string "")
+  (setq memory-stats-timer (run-at-time memory-stats-update-interval
+                                        memory-stats-update-interval
                                         (lambda ()
-                                          (setq memory-usage-mode-line-string (memory-usage))
+                                          (setq memory-stats-mode-line-string (memory-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun memory-usage-stop ()
+(defun memory-stats-stop ()
   "Stop displaying memory usage stats in the mode-line."
   (interactive)
-  (setq memory-usage-mode-line-string "")
-  (when memory-usage-use-global-mode-string
-    (setq global-mode-string (delq 'memory-usage-mode-line-string
+  (setq memory-stats-mode-line-string "")
+  (when memory-stats-use-global-mode-string
+    (setq global-mode-string (delq 'memory-stats-mode-line-string
                                    global-mode-string)))
-  (setq memory-usage-timer
-        (and memory-usage-timer (cancel-timer memory-usage-timer))))
-
-(defun memory-usage ()
-  (format-memory-usage memory-usage-format))
-
-(defun format-memory-usage (format)
-  (let ((stats (memory-stats)))
-    (format-expand memory-usage-formatters format stats)))
+  (setq memory-stats-timer
+        (and memory-stats-timer (cancel-timer memory-stats-timer))))
 
 (defun memory-stats ()
+  (format-memory-stats memory-stats-format))
+
+(defun format-memory-stats (format)
+  (let ((stats (memory-stats-fetch)))
+    (format-expand memory-stats-formatters format stats)))
+
+(defun memory-stats-fetch ()
   "Returns a bunch of memory stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -130,7 +144,7 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq memory-usage-formatters
+(setq memory-stats-formatters
   (list
     ; Percentile RAM usage.
     (cons "r" (lambda (stats)
