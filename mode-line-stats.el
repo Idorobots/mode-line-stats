@@ -141,7 +141,7 @@
   "\\([\%\&][[:alpha:][:digit:]]+\\)\\(\{\\([^\}]+\\)?\}\\)?"
   "Regexp to parse formatters in the format strings.")
 
-(defconst mls-modules-available '(battery cpu memory disk misc)
+(defconst mls-modules-available '(battery cpu memory disk misc sensors)
   "Modules available to use.")
 
 (defvar mls-modules '(cpu memory disk misc)
