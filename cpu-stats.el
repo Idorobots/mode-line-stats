@@ -127,7 +127,7 @@
   (let* ((cores (remove-if-not (lambda (line)
                                  (string-prefix-p "cpu" (car line)))
                                (read-stats)))
-         (stats (cl-mapcar-many
+         (stats (mls-mapcar*
                         (lambda (cpu prev-cpu)
                           (let* ((norm-user (nth 1 cpu))
                                  (nice-user (nth 2 cpu))
@@ -150,7 +150,7 @@
                                  (io-result (/ (- iowait prev-iowait)
                                                step-denom)))
                           (list (car cpu) user-result sys-result io-result)))
-                        (list cores *previous-stats*))))
+                        cores *previous-stats*)))
     (setq *previous-stats* cores)
     stats))
 

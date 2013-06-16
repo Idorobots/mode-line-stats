@@ -18,4 +18,10 @@
                                       (error "Unrecognized format sequence: %s" str))))
                               format t t)))
 
+(defun mls-mapcar* (f &rest xs)
+  "MAPCAR for multiple sequences"
+  (if (not (memq nil xs))
+      (cons (apply f (mapcar 'car xs))
+            (apply 'mls-mapcar* f (mapcar 'cdr xs)))))
+
 (provide 'misc-utils)
