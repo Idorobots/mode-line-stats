@@ -70,9 +70,9 @@
 (defcustom disk-stats-format "%p"
   "Format string:
 %p - Percentile used DISK space.
-%u - Used space (in KB).
-%f - Free space (in KB).
-%t - Total space (in KB)."
+%u# - Used space (where # is the unit: M, G or T). Default in KB.
+%f# - Free space (where # is the unit: M, G or T). Default in KB.
+%t# - Total space (where # is the unit: M, G or T). Default in KB."
   :type 'string
   :group 'disk-stats)
 
@@ -123,18 +123,40 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
+(defun disk-stats-normalize-value (value unit)
+  "Normalize VALUE using UNIT magnitude (M G or T)."
+  (cond ((equal unit 'M) (/ value 1024.0))
+        ((equal unit 'G) (/ value 1048576.0))
+        ((equal unit 'T) (/ value 1073741824.0))
+        (t value)))
+
+(defun disk-stats-build-formatter (formatter index &optional unit)
+  "Builds a `disk-stats` FORMATTER with VALUE."
+  (cons (concat formatter (when unit (symbol-name unit)))
+                      `(lambda (stats)
+                        (number-to-string
+                         (disk-stats-normalize-value
+                          (nth ,index (assoc disk-stats-device stats))
+                          ',unit)))))
+
 (setq disk-stats-formatters
   (list
-    ; Percentile DISK usage.
-    (cons "p" (lambda (stats)
-                (number-to-string (nth 4 (assoc disk-stats-device stats)))))
-    (cons "u" (lambda (stats)
-                (number-to-string (nth 2 (assoc disk-stats-device stats)))))
-    (cons "f" (lambda (stats)
-                (number-to-string (nth 3 (assoc disk-stats-device stats)))))
-    (cons "t" (lambda (stats)
-                (number-to-string (nth 1 (assoc disk-stats-device stats)))))))
+   (disk-stats-build-formatter "p" 4)
+
+   (disk-stats-build-formatter "u" 2 'M)
+   (disk-stats-build-formatter "u" 2 'G)
+   (disk-stats-build-formatter "u" 2 'T)
+   (disk-stats-build-formatter "u" 2)
+
+   (disk-stats-build-formatter "f" 3 'M)
+   (disk-stats-build-formatter "f" 3 'G)
+   (disk-stats-build-formatter "f" 3 'T)
+   (disk-stats-build-formatter "f" 3)
+
+   (disk-stats-build-formatter "t" 1 'M)
+   (disk-stats-build-formatter "t" 1 'G)
+   (disk-stats-build-formatter "t" 1 'T)
+   (disk-stats-build-formatter "t" 1)))
 
 (provide 'disk-stats)
-
-;;; file ends here
+;;; disk-stats ends here
