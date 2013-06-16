@@ -125,8 +125,7 @@
 (defun battery-stats-fetch ()
   "Return a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
-                 (remove-if (lambda (str) (string= str ""))
-                            (split-string (substring-no-properties battery-mode-line-string))))))
+                       (split-string (substring-no-properties battery-mode-line-string) " "))))
     (mapcar (lambda (lst)
               (cons (car lst)
                     (mapcar #'string-to-number (cdr lst))))
