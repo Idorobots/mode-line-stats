@@ -53,7 +53,7 @@
 ;;; Code:
 
 (require 'cl)
-(require 'misc-utils)
+(require 'mls-utils)
 
 (defvar memory-stats-formatters nil)
 (defvar memory-stats-timer nil)
@@ -130,7 +130,7 @@
 
 (defun format-memory-stats (format)
   (let ((stats (memory-stats-fetch)))
-    (format-expand memory-stats-formatters format stats)))
+    (mls-format-expand memory-stats-formatters format stats)))
 
 (defun memory-stats-fetch ()
   "Returns a bunch of memory stats in a form of an alist."

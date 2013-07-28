@@ -36,7 +36,7 @@
 ;;; Code:
 
 (require 'cl)
-(require 'misc-utils)
+(require 'mls-utils)
 
 (defvar battery-stats-formatters nil)
 (defvar battery-stats-timer nil)
@@ -120,7 +120,7 @@
 (defun format-battery-stats (format)
   ""
   (let ((stats (battery-stats-fetch)))
-    (format-expand battery-stats-formatters format stats)))
+    (mls-format-expand battery-stats-formatters format stats)))
 
 (defun battery-stats-fetch ()
   "Return a bunch of disk stats in a form of an alist."

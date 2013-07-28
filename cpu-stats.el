@@ -45,7 +45,7 @@
 ;;; Code:
 
 (require 'cl)
-(require 'misc-utils)
+(require 'mls-utils)
 
 (defvar *previous-stats* nil)
 (defvar cpu-stats-timer nil)
@@ -119,7 +119,7 @@
 
 (defun format-cpu-stats (format)
   (let ((stats (cpu-stats-fetch)))
-    (format-expand cpu-stats-formatters format stats)))
+    (mls-format-expand cpu-stats-formatters format stats)))
 
 (defun cpu-stats-fetch ()
   "Returns a bunch of CPU stats for each core and averages in a form of an alist."

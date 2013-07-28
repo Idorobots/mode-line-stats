@@ -39,7 +39,7 @@
 ;;; Code:
 
 (require 'cl)
-(require 'misc-utils)
+(require 'mls-utils)
 
 (defvar disk-stats-formatters nil)
 (defvar disk-stats-device nil)
@@ -109,7 +109,7 @@
 
 (defun format-disk-stats (format)
   (let ((stats (disk-stats-fetch)))
-    (format-expand disk-stats-formatters format stats)))
+    (mls-format-expand disk-stats-formatters format stats)))
 
 (defun disk-stats-fetch ()
   "Returns a bunch of disk stats in a form of an alist."

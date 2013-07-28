@@ -34,7 +34,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(require 'misc-utils)
+(require 'mls-utils)
 
 (defvar sensors-stats-formatters nil)
 (defvar sensors-stats-timer nil)
@@ -104,7 +104,7 @@ Second value is the `sensors` label.")
 (defun format-sensors-stats (format)
   "Expand the FORMAT."
   (let ((stats (sensors-stats-fetch)))
-    (format-expand sensors-stats-formatters format stats)))
+    (mls-format-expand sensors-stats-formatters format stats)))
 
 (defun sensors-stats-fetch ()
   "Return a bunch of sensors stats in a form of an alist."

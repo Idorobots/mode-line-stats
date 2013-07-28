@@ -47,7 +47,7 @@
 ;;; Code:
 
 (require 'cl)
-(require 'misc-utils)
+(require 'mls-utils)
 
 (defgroup misc-stats nil
   "Display various system stats in the mode-line."
@@ -141,14 +141,14 @@
          (system-uptime (format-seconds misc-system-uptime-format
                                         (- (float-time (current-time))
                                            boot-time))))
-    (format-expand misc-stats-formatters
+    (mls-format-expand misc-stats-formatters
                    misc-stats-format
                    (list load boot-time emacs-uptime system-uptime))))
 
 (setq misc-stats-formatters
   (list ;; FIXME `replace-match' errors with `args-out-of-range'
         ;; FIXME As a workaround precalculate uptimes in `make-misc-stats'
-        ;; FIXME and pass as the optional argument to `format-expand'.
+        ;; FIXME and pass as the optional argument to `mls-format-expand'.
         (cons "E" (lambda (stats)
                     ;; (emacs-uptime misc-emacs-uptime-format)
                     (nth 2 stats)))
