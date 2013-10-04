@@ -49,10 +49,10 @@
 ;; * Module settings
 ;;
 ;;    Each module have an alist of settings with a specific name.
-;;    For cpu module is 'cpu-stats-settings'.
+;;    For cpu module is 'mls-cpu-settings'.
 ;;    This alist have the following structure:
 ;;
-;;    (setq cpu-stats-settings
+;;    (setq mls-cpu-settings
 ;;      '((:formats
 ;;         ((:primary "&A{c}")
 ;;          (:secondary "CPU[%C0{%%},%C1{%%}]")
@@ -80,7 +80,7 @@
 ;;      "mls-crit-primary-face" for primary mode-line.
 ;;      "mls-crit-secondary-face" for secondary mode-line.
 ;;
-;;    The formatters available are the ones supported by cpu-stats
+;;    The formatters available are the ones supported by the modules
 ;;    with minor enhacements.  For example you can add '{text}' after
 ;;    a formatter to add text colorized depending of the level.
 ;;    Also you can hide the value using & instead of %.
