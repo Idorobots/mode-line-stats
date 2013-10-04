@@ -1,4 +1,4 @@
-;;; memory-stats.el --- display various memory stats in the mode-line  -*- coding: mule-utf-8 -*-
+;;; mls-memory.el --- display various memory stats in the mode-line  -*- coding: mule-utf-8 -*-
 
 ;; Copyright (C) 2012 Kajetan Rzepecki
 
@@ -24,13 +24,13 @@
 
 ;;; Usage:
 
-;; (require 'memory-stats)
-;; (memory-stats-start)
+;; (require 'mls-memory)
+;; (mls-memory-start)
 
 
 ;; There are a few variables to tweak:
-;;   `memory-stats-update-interval' - Time interval after which current memory stats are updated.
-;;   `memory-stats-format' - A string format used in the mode-line.
+;;   `mls-memory-update-interval' - Time interval after which current memory stats are updated.
+;;   `mls-memory-format' - A string format used in the mode-line.
 ;;                      Supports the following escape sequences:
 ;;      %r - Percentile main RAM usage.
 ;;      %R - Percentile main RAM usage (no buffers or cache).
@@ -53,14 +53,14 @@
 ;;; Code:
 
 (require 'cl)
-(require 'mls-utils)
+(require 'mls-common)
 
-(defvar memory-stats-formatters nil)
-(defvar memory-stats-timer nil)
-(defvar memory-stats-mode-line-string "")
-(defvar memory-stats-use-global-mode-string t)
+(defvar mls-memory-formatters nil)
+(defvar mls-memory-timer nil)
+(defvar mls-memory-mode-line-string "")
+(defvar mls-memory-use-global-mode-string t)
 
-(defvar memory-stats-settings
+(defvar mls-memory-settings
   '((:formats
      ((:primary "&R{m}")
       (:secondary " MEM[%R{%%}] SWAP[%S{%%}]")
@@ -74,16 +74,16 @@
              (0.0  "norm"))))))
   "MEMORY stats settings.")
 
-(defgroup memory-stats nil
+(defgroup mls-memory nil
   "Display various memory stats in the mode-line."
-  :group 'memory-stats)
+  :group 'mls-memory)
 
-(defcustom memory-stats-update-interval 2
+(defcustom mls-memory-update-interval 2
   "Number of seconds between memory stats recalculation."
   :type 'number
-  :group 'memory-stats)
+  :group 'mls-memory)
 
-(defcustom memory-stats-format "%R %S"
+(defcustom mls-memory-format "%R %S"
   "Format string:
 %r - Percentile main RAM usage.
 %R - Percentile main RAM usage (no buffers or cache).
@@ -99,40 +99,40 @@
 %Su - Used swap in MB.
 %Sf - Free swap in MB."
   :type 'string
-  :group 'memory-stats)
+  :group 'mls-memory)
 
-(defun memory-stats-start ()
+(defun mls-memory-start ()
   "Start displaying memory usage stats in the mode-line."
   (interactive)
-  (when memory-stats-use-global-mode-string
-    (add-to-list 'global-mode-string 'memory-stats-mode-line-string t))
-  (and memory-stats-timer (cancel-timer memory-stats-timer))
-  (setq memory-stats-mode-line-string "")
-  (setq memory-stats-timer (run-at-time memory-stats-update-interval
-                                        memory-stats-update-interval
+  (when mls-memory-use-global-mode-string
+    (add-to-list 'global-mode-string 'mls-memory-mode-line-string t))
+  (and mls-memory-timer (cancel-timer mls-memory-timer))
+  (setq mls-memory-mode-line-string "")
+  (setq mls-memory-timer (run-at-time mls-memory-update-interval
+                                        mls-memory-update-interval
                                         (lambda ()
-                                          (setq memory-stats-mode-line-string (memory-stats))
+                                          (setq mls-memory-mode-line-string (mls-memory-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun memory-stats-stop ()
+(defun mls-memory-stop ()
   "Stop displaying memory usage stats in the mode-line."
   (interactive)
-  (setq memory-stats-mode-line-string "")
-  (when memory-stats-use-global-mode-string
-    (setq global-mode-string (delq 'memory-stats-mode-line-string
+  (setq mls-memory-mode-line-string "")
+  (when mls-memory-use-global-mode-string
+    (setq global-mode-string (delq 'mls-memory-mode-line-string
                                    global-mode-string)))
-  (setq memory-stats-timer
-        (and memory-stats-timer (cancel-timer memory-stats-timer))))
+  (setq mls-memory-timer
+        (and mls-memory-timer (cancel-timer mls-memory-timer))))
 
-(defun memory-stats ()
-  (format-memory-stats memory-stats-format))
+(defun mls-memory-stats ()
+  (mls-memory-format-expand mls-memory-format))
 
-(defun format-memory-stats (format)
-  (let ((stats (memory-stats-fetch)))
-    (mls-format-expand memory-stats-formatters format stats)))
+(defun mls-memory-format-expand (format)
+  (let ((stats (mls-memory-fetch)))
+    (mls-format-expand mls-memory-formatters format stats)))
 
-(defun memory-stats-fetch ()
+(defun mls-memory-fetch ()
   "Returns a bunch of memory stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -144,7 +144,7 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq memory-stats-formatters
+(setq mls-memory-formatters
   (list
     ; Percentile RAM usage.
     (cons "r" (lambda (stats)
@@ -208,6 +208,5 @@
                   (format "%.0f" (* 100 (/ (float used)
                                            total))))))))
 
-(provide 'memory-stats)
-
-;;; file ends here
+(provide 'mls-memory)
+;;; mls-memory.el ends here

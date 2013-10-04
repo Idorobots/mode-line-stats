@@ -1,4 +1,4 @@
-;;; disk-stats.el --- display various disk stats in the mode-line  -*- coding: mule-utf-8 -*-
+;;; mls-disk.el --- display various disk stats in the mode-line  -*- coding: mule-utf-8 -*-
 
 ;; This file is not part of Emacs
 
@@ -28,26 +28,26 @@
 ;;; Usage:
 
 ;; By default, the first device found in df will be used as
-;; disk-usage-device. If you want to use a different one you
-;; can set it before calling disk-usage-start.
+;; mls-disk-device. If you want to use a different one you
+;; can set it before calling mls-disk-start.
 
-;; (require 'disk-stats)
-;; (setq disk-stats-format "%p")
-;; (setq disk-stats-device "/dev/sda3")
-;; (disk-stats-start)
+;; (require 'mls-disk)
+;; (setq mls-disk-format "%p")
+;; (setq mls-disk-device "/dev/sda3")
+;; (mls-disk-start)
 
 ;;; Code:
 
 (require 'cl)
-(require 'mls-utils)
+(require 'mls-common)
 
-(defvar disk-stats-formatters nil)
-(defvar disk-stats-device nil)
-(defvar disk-stats-timer nil)
-(defvar disk-stats-mode-line-string "")
-(defvar disk-stats-use-global-mode-string t)
+(defvar mls-disk-formatters nil)
+(defvar mls-disk-device nil)
+(defvar mls-disk-timer nil)
+(defvar mls-disk-mode-line-string "")
+(defvar mls-disk-use-global-mode-string t)
 
-(defvar disk-stats-settings
+(defvar mls-disk-settings
   '((:formats
      ((:primary "&p{d}")
       (:secondary " DISK[%p{%%}]")
@@ -58,60 +58,60 @@
              (0.0  "norm"))))))
   "DISK stats settings.")
 
-(defgroup disk-stats nil
+(defgroup mls-disk nil
   "Display various disk stats in the mode-line."
-  :group 'disk-stats)
+  :group 'mls-disk)
 
-(defcustom disk-stats-update-interval 15
+(defcustom mls-disk-update-interval 15
   "Number of seconds between disk stats recalculation."
   :type 'number
-  :group 'disk-stats)
+  :group 'mls-disk)
 
-(defcustom disk-stats-format "%p"
+(defcustom mls-disk-format "%p"
   "Format string:
 %p - Percentile used DISK space.
 %u# - Used space (where # is the unit: M, G or T). Default in KB.
 %f# - Free space (where # is the unit: M, G or T). Default in KB.
 %t# - Total space (where # is the unit: M, G or T). Default in KB."
   :type 'string
-  :group 'disk-stats)
+  :group 'mls-disk)
 
-(defun disk-stats-start ()
+(defun mls-disk-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
-  (when disk-stats-use-global-mode-string
-    (add-to-list 'global-mode-string 'disk-stats-mode-line-string t))
+  (when mls-disk-use-global-mode-string
+    (add-to-list 'global-mode-string 'mls-disk-mode-line-string t))
 
-  (unless disk-stats-device
-    (setq disk-stats-device (caar (disk-stats-fetch))))
+  (unless mls-disk-device
+    (setq mls-disk-device (caar (mls-disk-fetch))))
 
-  (and disk-stats-timer (cancel-timer disk-stats-timer))
-  (setq disk-stats-mode-line-string "")
-  (setq disk-stats-timer (run-at-time disk-stats-update-interval
-                                        disk-stats-update-interval
+  (and mls-disk-timer (cancel-timer mls-disk-timer))
+  (setq mls-disk-mode-line-string "")
+  (setq mls-disk-timer (run-at-time mls-disk-update-interval
+                                        mls-disk-update-interval
                                         (lambda ()
-                                          (setq disk-stats-mode-line-string (disk-stats))
+                                          (setq mls-disk-mode-line-string (mls-disk-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun disk-stats-stop ()
+(defun mls-disk-stop ()
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
-  (setq disk-stats-mode-line-string "")
-  (when disk-stats-use-global-mode-string
-    (setq global-mode-string (delq 'disk-stats-mode-line-string
+  (setq mls-disk-mode-line-string "")
+  (when mls-disk-use-global-mode-string
+    (setq global-mode-string (delq 'mls-disk-mode-line-string
                                    global-mode-string)))
-  (setq disk-stats-timer
-        (and disk-stats-timer (cancel-timer disk-stats-timer))))
+  (setq mls-disk-timer
+        (and mls-disk-timer (cancel-timer mls-disk-timer))))
 
-(defun disk-stats ()
-  (format-disk-stats disk-stats-format))
+(defun mls-disk-stats ()
+  (mls-disk-format-expand mls-disk-format))
 
-(defun format-disk-stats (format)
-  (let ((stats (disk-stats-fetch)))
-    (mls-format-expand disk-stats-formatters format stats)))
+(defun mls-disk-format-expand (format)
+  (let ((stats (mls-disk-fetch)))
+    (mls-format-expand mls-disk-formatters format stats)))
 
-(defun disk-stats-fetch ()
+(defun mls-disk-fetch ()
   "Returns a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -123,40 +123,40 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(defun disk-stats-normalize-value (value unit)
+(defun mls-disk-normalize-value (value unit)
   "Normalize VALUE using UNIT magnitude (M G or T)."
   (cond ((equal unit 'M) (/ value 1024.0))
         ((equal unit 'G) (/ value 1048576.0))
         ((equal unit 'T) (/ value 1073741824.0))
         (t value)))
 
-(defun disk-stats-build-formatter (formatter index &optional unit)
-  "Builds a `disk-stats` FORMATTER with VALUE."
+(defun mls-disk-build-formatter (formatter index &optional unit)
+  "Builds a `mls-disk` FORMATTER with VALUE."
   (cons (concat formatter (when unit (symbol-name unit)))
                       `(lambda (stats)
                         (number-to-string
-                         (disk-stats-normalize-value
-                          (nth ,index (assoc disk-stats-device stats))
+                         (mls-disk-normalize-value
+                          (nth ,index (assoc mls-disk-device stats))
                           ',unit)))))
 
-(setq disk-stats-formatters
+(setq mls-disk-formatters
   (list
-   (disk-stats-build-formatter "p" 4)
+   (mls-disk-build-formatter "p" 4)
 
-   (disk-stats-build-formatter "u" 2 'M)
-   (disk-stats-build-formatter "u" 2 'G)
-   (disk-stats-build-formatter "u" 2 'T)
-   (disk-stats-build-formatter "u" 2)
+   (mls-disk-build-formatter "u" 2 'M)
+   (mls-disk-build-formatter "u" 2 'G)
+   (mls-disk-build-formatter "u" 2 'T)
+   (mls-disk-build-formatter "u" 2)
 
-   (disk-stats-build-formatter "f" 3 'M)
-   (disk-stats-build-formatter "f" 3 'G)
-   (disk-stats-build-formatter "f" 3 'T)
-   (disk-stats-build-formatter "f" 3)
+   (mls-disk-build-formatter "f" 3 'M)
+   (mls-disk-build-formatter "f" 3 'G)
+   (mls-disk-build-formatter "f" 3 'T)
+   (mls-disk-build-formatter "f" 3)
 
-   (disk-stats-build-formatter "t" 1 'M)
-   (disk-stats-build-formatter "t" 1 'G)
-   (disk-stats-build-formatter "t" 1 'T)
-   (disk-stats-build-formatter "t" 1)))
+   (mls-disk-build-formatter "t" 1 'M)
+   (mls-disk-build-formatter "t" 1 'G)
+   (mls-disk-build-formatter "t" 1 'T)
+   (mls-disk-build-formatter "t" 1)))
 
-(provide 'disk-stats)
-;;; disk-stats ends here
+(provide 'mls-disk)
+;;; mls-disk ends here

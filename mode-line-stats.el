@@ -453,17 +453,17 @@ VALUES: a list of values used to get the current level"
 
 (defun mls-disable-module (module-name)
   "Disable the module MODULE-NAME."
-  (let ((var-stop (intern (format "%s-stats-stop" module-name))))
+  (let ((var-stop (intern (format "mls-%s-stop" module-name))))
     (funcall var-stop)))
 
 (defun mls-enable-module (module-name)
   "Enable the module with name MODULE-NAME."
   (let ((found (mls-module-valid-p module-name))
-        (var-global-mode-string (intern (format "%s-stats-use-global-mode-string" module-name)))
-        (var-fmt (intern (format "%s-stats-format" module-name)))
-        (var-start (intern (format "%s-stats-start" module-name)))
-        (var-settings (intern (format "%s-stats-settings" module-name)))
-        (module-file (intern (format "%s-stats" module-name))))
+        (var-global-mode-string (intern (format "mls-%s-use-global-mode-string" module-name)))
+        (var-fmt (intern (format "mls-%s-format" module-name)))
+        (var-start (intern (format "mls-%s-start" module-name)))
+        (var-settings (intern (format "mls-%s-settings" module-name)))
+        (module-file (intern (format "mls-%s" module-name))))
 
     (when found
       (require module-file)
@@ -485,9 +485,9 @@ MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
 
     (when (mls-module-enabled-p module-name)
       (setq mode-line-string (intern
-                              (format "%s-stats-mode-line-string" module-name)))
+                              (format "mls-%s-mode-line-string" module-name)))
       (setq module-alist-sym (intern
-                              (format "%s-stats-settings" module-name)))
+                              (format "mls-%s-settings" module-name)))
       (setq data (split-string (symbol-value mode-line-string)))
 
       (setq module-alist-value (symbol-value module-alist-sym))

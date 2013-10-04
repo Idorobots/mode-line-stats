@@ -1,4 +1,4 @@
-;;; battery-stats.el --- display various battery stats in the mode-line  -*- coding: mule-utf-8 -*-
+;;; mls-battery.el --- display various battery stats in the mode-line  -*- coding: mule-utf-8 -*-
 
 ;; This file is not part of Emacs
 
@@ -27,25 +27,25 @@
 
 ;;; Usage:
 
-;; (require 'battery-stats)
-;; (setq battery-stats-format "%p")
-;; (battery-stats-start)
+;; (require 'mls-battery)
+;; (setq mls-battery-format "%p")
+;; (mls-battery-start)
 
 ;;; Commentary:
 
 ;;; Code:
 
 (require 'cl)
-(require 'mls-utils)
+(require 'mls-common)
 
-(defvar battery-stats-formatters nil)
-(defvar battery-stats-timer nil)
-(defvar battery-stats-mode-line-string "")
-(defvar battery-stats-use-global-mode-string t)
+(defvar mls-battery-formatters nil)
+(defvar mls-battery-timer nil)
+(defvar mls-battery-mode-line-string "")
+(defvar mls-battery-use-global-mode-string t)
 
-(defvar battery-stats-battery-format "%c %r %B %d %L %p %m %h %t")
+(defvar mls-battery-battery-format "%c %r %B %d %L %p %m %h %t")
 
-(defvar battery-stats-settings
+(defvar mls-battery-settings
   '((:formats
      ((:primary "&p{b}")
       (:secondary " BAT[%p{%%}]")
@@ -56,17 +56,17 @@
              (0.0  "crit"))))))
   "BATTERY stats settings.")
 
-(defgroup battery-stats nil
+(defgroup mls-battery nil
   "Display various disk stats in the mode-line."
-  :group 'battery-stats)
+  :group 'mls-battery)
 
-(defcustom battery-stats-update-interval 15
+(defcustom mls-battery-update-interval 15
   "Number of seconds between disk stats recalculation."
   :type 'number
-  :group 'battery-stats)
+  :group 'mls-battery)
 
 
-(defcustom battery-stats-format "%p %t %r"
+(defcustom mls-battery-format "%p %t %r"
   "Format string:
 %c Current capacity (mAh or mWh)
 %r Current rate of charge or discharge
@@ -80,49 +80,49 @@
 %h Remaining time (to charge or discharge) in hours
 %t Remaining time (to charge or discharge) in the form `h:min'"
   :type 'string
-  :group 'battery-stats)
+  :group 'mls-battery)
 
-(defun battery-stats-start ()
+(defun mls-battery-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
 
-  (setq battery-mode-line-format battery-stats-battery-format)
+  (setq battery-mode-line-format mls-battery-battery-format)
   (display-battery-mode)
   (setq global-mode-string (delq 'battery-mode-line-string
                                  global-mode-string))
-  (when battery-stats-use-global-mode-string
-    (add-to-list 'global-mode-string 'battery-stats-mode-line-string t))
+  (when mls-battery-use-global-mode-string
+    (add-to-list 'global-mode-string 'mls-battery-mode-line-string t))
 
-  (and battery-stats-timer (cancel-timer battery-stats-timer))
-  (setq battery-stats-mode-line-string "")
-  (setq battery-stats-timer (run-at-time battery-stats-update-interval
-                                        battery-stats-update-interval
+  (and mls-battery-timer (cancel-timer mls-battery-timer))
+  (setq mls-battery-mode-line-string "")
+  (setq mls-battery-timer (run-at-time mls-battery-update-interval
+                                        mls-battery-update-interval
                                         (lambda ()
-                                          (setq battery-stats-mode-line-string (battery-stats))
+                                          (setq mls-battery-mode-line-string (mls-battery-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun battery-stats-stop ()
+(defun mls-battery-stop ()
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
-  (setq battery-stats-mode-line-string "")
-  (when battery-stats-use-global-mode-string
-    (setq global-mode-string (delq 'battery-stats-mode-line-string
+  (setq mls-battery-mode-line-string "")
+  (when mls-battery-use-global-mode-string
+    (setq global-mode-string (delq 'mls-battery-mode-line-string
                                    global-mode-string)))
-  (setq battery-stats-timer
-        (and battery-stats-timer (cancel-timer battery-stats-timer)))
+  (setq mls-battery-timer
+        (and mls-battery-timer (cancel-timer mls-battery-timer)))
   (display-battery-mode -1))
 
-(defun battery-stats ()
+(defun mls-battery-stats ()
   ""
-  (format-battery-stats battery-stats-format))
+  (mls-battery-format-expand mls-battery-format))
 
-(defun format-battery-stats (format)
+(defun mls-battery-format-expand (format)
   ""
-  (let ((stats (battery-stats-fetch)))
-    (mls-format-expand battery-stats-formatters format stats)))
+  (let ((stats (mls-battery-fetch)))
+    (mls-format-expand mls-battery-formatters format stats)))
 
-(defun battery-stats-fetch ()
+(defun mls-battery-fetch ()
   "Return a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                        (split-string (substring-no-properties battery-mode-line-string) " "))))
@@ -131,7 +131,7 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq battery-stats-formatters
+(setq mls-battery-formatters
   (list
     (cons "c" (lambda (stats)
                 (car (nth 0 stats))))
@@ -152,5 +152,5 @@
     (cons "t" (lambda (stats)
                 (car (nth 9 stats))))))
 
-(provide 'battery-stats)
-;;; battery-stats.el ends here
+(provide 'mls-battery)
+;;; mls-battery.el ends here

@@ -1,4 +1,4 @@
-;;; system-stats.el --- Display ystem and Emacs stats in the mode-line.  -*- coding: mule-utf-8 -*-
+;;; mls-misc.el --- Display ystem and Emacs stats in the mode-line.  -*- coding: mule-utf-8 -*-
 
 ;; Copyright (C) 2012 Kajetan Rzepecki
 
@@ -29,12 +29,12 @@
 
 
 ;; There are a few variables to tweak:
-;;   `misc-update-interval' - Time interval after which the stats are updated.
-;;   `misc-emacs-uptime-format' - Emacs uptime format string used in the mode-line.
-;;   `misc-system-uptime-format' - System uptime format string.
-;;   `misc-time-format' - Used to format current time.
-;;   `misc-date-format' - Used to format current date.
-;;   `misc-stats-format' - Used to glue all this stuff together. Supports:
+;;   `mls-misc-update-interval' - Time interval after which the stats are updated.
+;;   `mls-misc-emacs-uptime-format' - Emacs uptime format string used in the mode-line.
+;;   `mls-misc-system-uptime-format' - System uptime format string.
+;;   `mls-misc-time-format' - Used to format current time.
+;;   `mls-misc-date-format' - Used to format current date.
+;;   `mls-misc-format' - Used to glue all this stuff together. Supports:
 ;;       %E - Emacs uptime according to `misc-emacs-uptime-format'.
 ;;       %S - System uptime according to `misc-system-uptime-format'.
 ;;       %l# - System load average (# minutes, where # is either 1, 5 or 15).
@@ -47,52 +47,52 @@
 ;;; Code:
 
 (require 'cl)
-(require 'mls-utils)
+(require 'mls-common)
 
-(defgroup misc-stats nil
+(defgroup mls-misc nil
   "Display various system stats in the mode-line."
-  :group 'misc-stats)
+  :group 'mls-misc)
 
-(defcustom misc-update-interval 2
+(defcustom mls-misc-update-interval 2
   "Number of seconds between system stats recalculation."
   :type 'number
-  :group 'misc-stats)
+  :group 'mls-misc)
 
-(defcustom misc-emacs-uptime-format "%h:%.2m"
+(defcustom mls-misc-emacs-uptime-format "%h:%.2m"
   "Format string conforming to `format-seconds'. Uses `emacs-uptime'."
   :type 'string
-  :group 'misc-stats)
+  :group 'mls-misc)
 
-(defcustom misc-system-uptime-format "%h:%.2m"
+(defcustom mls-misc-system-uptime-format "%h:%.2m"
   "Conforms to `format-seconds'."
   :type 'string
-  :group 'misc-stats)
+  :group 'mls-misc)
 
-(defcustom misc-time-format "%H:%M:%S"
+(defcustom mls-misc-time-format "%H:%M:%S"
   "Conforms to `format-time-string'."
   :type 'string
-  :group 'misc-stats)
+  :group 'mls-misc)
 
-(defcustom misc-date-format "%Y-%m-%d"
+(defcustom mls-misc-date-format "%Y-%m-%d"
   "Conforms to `format-time-string'."
   :type 'string
-  :group 'misc-stats)
+  :group 'mls-misc)
 
-(defcustom misc-stats-format "Emacs uptime: %E System uptime: %S Load averages: %L"
+(defcustom mls-misc-format "Emacs uptime: %E System uptime: %S Load averages: %L"
   "Format string:
-%E - Emacs uptime according to `misc-emacs-uptime-format'.
-%S - System uptime according to `misc-system-uptime-format'.
+%E - Emacs uptime according to `mls-misc-emacs-uptime-format'.
+%S - System uptime according to `mls-misc-system-uptime-format'.
 %l# - System load average (# minutes, where # is either 1, 5 or 15).
 %L - System load average triple (like \"%l1 %l5 %l15\").
-%T - Current time according to `format-time-string' called with `misc-time-format'.
+%T - Current time according to `format-time-string' called with `mls-misc-time-format'.
 %D - Like %T, separated for convinience.")
 
-(defvar misc-stats-mode-line-string "")
-(defvar misc-stats-timer nil)
-(defvar misc-stats-formatters nil)
-(defvar misc-stats-use-global-mode-string t)
+(defvar mls-misc-mode-line-string "")
+(defvar mls-misc-timer nil)
+(defvar mls-misc-formatters nil)
+(defvar mls-misc-use-global-mode-string t)
 
-(defvar misc-stats-settings
+(defvar mls-misc-settings
   '((:formats
      ((:primary "&L1{l}")
       (:secondary " LOAD[%L]")
@@ -106,54 +106,54 @@
              (0.0  "norm"))))))
   "MISC stats settings.")
 
-(defun misc-stats-start ()
+(defun mls-misc-start ()
   "Start displaying misc stats in the mode-line."
   (interactive)
-  (when misc-stats-use-global-mode-string
-    (add-to-list 'global-mode-string 'misc-stats-mode-line-string t))
-  (and misc-stats-timer (cancel-timer misc-stats-timer))
-  (setq misc-stats-mode-line-string "")
-  (setq misc-stats-timer (run-at-time misc-update-interval
-                                      misc-update-interval
+  (when mls-misc-use-global-mode-string
+    (add-to-list 'global-mode-string 'mls-misc-mode-line-string t))
+  (and mls-misc-timer (cancel-timer mls-misc-timer))
+  (setq mls-misc-mode-line-string "")
+  (setq mls-misc-timer (run-at-time mls-misc-update-interval
+                                      mls-misc-update-interval
                                       (lambda ()
-                                        (setq misc-stats-mode-line-string (make-misc-stats))
+                                        (setq mls-misc-mode-line-string (mls-misc-stats))
                                         (force-mode-line-update)
                                         (sit-for 0)))))
 
-(defun misc-stats-stop ()
+(defun mls-misc-stop ()
   "Stop displaying misc system stats in the mode-line."
   (interactive)
-  (setq misc-stats-mode-line-string "")
-  (when misc-stats-use-global-mode-string
-    (setq global-mode-string (delq 'misc-stats-mode-line-string
+  (setq mls-misc-mode-line-string "")
+  (when mls-misc-use-global-mode-string
+    (setq global-mode-string (delq 'mls-misc-mode-line-string
                                    global-mode-string)))
-  (setq misc-stats-timer
-        (and misc-stats-timer (cancel-timer misc-stats-timer))))
+  (setq mls-misc-timer
+        (and mls-misc-timer (cancel-timer mls-misc-timer))))
 
-(defun make-misc-stats ()
+(defun mls-misc-stats ()
   (let* ((load (map 'list
                     (lambda (x) (/ x 100.0))
                     (load-average)))
          (boot-time (string-to-number
                       (shell-command-to-string
                         "cat /proc/stat | awk '{if(NR == 6) print $2}'")))
-         (emacs-uptime (emacs-uptime misc-emacs-uptime-format))
-         (system-uptime (format-seconds misc-system-uptime-format
+         (emacs-uptime (emacs-uptime mls-misc-emacs-uptime-format))
+         (system-uptime (format-seconds mls-misc-system-uptime-format
                                         (- (float-time (current-time))
                                            boot-time))))
-    (mls-format-expand misc-stats-formatters
-                   misc-stats-format
+    (mls-format-expand mls-misc-formatters
+                   mls-misc-format
                    (list load boot-time emacs-uptime system-uptime))))
 
-(setq misc-stats-formatters
+(setq mls-misc-formatters
   (list ;; FIXME `replace-match' errors with `args-out-of-range'
-        ;; FIXME As a workaround precalculate uptimes in `make-misc-stats'
+        ;; FIXME As a workaround precalculate uptimes in `mls-misc'
         ;; FIXME and pass as the optional argument to `mls-format-expand'.
         (cons "E" (lambda (stats)
-                    ;; (emacs-uptime misc-emacs-uptime-format)
+                    ;; (emacs-uptime mls-misc-emacs-uptime-format)
                     (nth 2 stats)))
         (cons "S" (lambda (stats)
-                    ;; (format-seconds misc-system-uptime-format
+                    ;; (format-seconds mls-misc-system-uptime-format
                     ;;                 (- (float-time (current-time))
                     ;;                    (cadr stats)))
                     (nth 3 stats)))
@@ -168,11 +168,10 @@
                     (apply #'format "%.2f %.2f %.2f" (car stats))))
 
         (cons "T" (lambda (stats)
-                    (format-time-string misc-time-format)))
+                    (format-time-string mls-misc-time-format)))
         (cons "D" (lambda (stats)
-                    (format-time-string misc-date-format)))
+                    (format-time-string mls-misc-date-format)))
   ))
 
-(provide 'misc-stats)
-
-;;; file ends here
+(provide 'mls-misc)
+;;; mls-misc.el ends here

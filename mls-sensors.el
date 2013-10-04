@@ -1,4 +1,4 @@
-;;; sensors-stats.el --- display various sensors stats in the mode-line  -*- coding: mule-utf-8 -*-
+;;; mls-sensors.el --- display various sensors stats in the mode-line  -*- coding: mule-utf-8 -*-
 
 ;; This file is not part of Emacs
 
@@ -25,30 +25,30 @@
 
 ;;; Usage:
 
-;; (require 'sensors-stats)
-;; (setq sensors-stats-patterns
+;; (require 'mls-sensors)
+;; (setq mls-sensors-patterns
 ;;   '(("c0" "Core 0")
 ;;     ("c1" "Core 1")))
-;; (sensors-stats-start)
+;; (mls-sensors-start)
 
 ;;; Commentary:
 
 ;;; Code:
-(require 'mls-utils)
+(require 'mls-common)
 
-(defvar sensors-stats-formatters nil)
-(defvar sensors-stats-timer nil)
-(defvar sensors-stats-mode-line-string "")
-(defvar sensors-stats-use-global-mode-string t)
-(defvar sensors-stats-command "sensors")
-(defvar sensors-stats-patterns
+(defvar mls-sensors-formatters nil)
+(defvar mls-sensors-timer nil)
+(defvar mls-sensors-mode-line-string "")
+(defvar mls-sensors-use-global-mode-string t)
+(defvar mls-sensors-command "sensors")
+(defvar mls-sensors-patterns
   '(("c0" "Core 0")
     ("c1" "Core 1"))
   "Alist of patterns.
 First value is the formatter.
 Second value is the `sensors` label.")
 
-(defvar sensors-stats-settings
+(defvar mls-sensors-settings
   '((:formats
      ((:primary "&c0{t}")
       (:secondary " SENSORS[%c0{ºC}]")
@@ -59,76 +59,76 @@ Second value is the `sensors` label.")
               (0.0  "norm"))))))
   "SENSORS stats settings.")
 
-(defgroup sensors-stats nil
+(defgroup mls-sensors nil
   "Display various sensors stats in the mode-line."
-  :group 'sensors-stats)
+  :group 'mls-sensors)
 
-(defcustom sensors-stats-update-interval 15
+(defcustom mls-sensors-update-interval 15
   "Number of seconds between sensors stats recalculation."
   :type 'number
-  :group 'sensors-stats)
+  :group 'mls-sensors)
 
-(defvar sensors-stats-format nil)
+(defvar mls-sensors-format nil)
 
-(defun sensors-stats-start ()
+(defun mls-sensors-start ()
   "Start displaying sensors usage stats in the mode-line."
   (interactive)
-  (when sensors-stats-use-global-mode-string
-    (add-to-list 'global-mode-string 'sensors-stats-mode-line-string t))
+  (when mls-sensors-use-global-mode-string
+    (add-to-list 'global-mode-string 'mls-sensors-mode-line-string t))
 
-  (sensors-stats-formatters-init)
+  (mls-sensors-formatters-init)
 
-  (and sensors-stats-timer (cancel-timer sensors-stats-timer))
-  (setq sensors-stats-mode-line-string "")
-  (setq sensors-stats-timer (run-at-time sensors-stats-update-interval
-                                        sensors-stats-update-interval
+  (and mls-sensors-timer (cancel-timer mls-sensors-timer))
+  (setq mls-sensors-mode-line-string "")
+  (setq mls-sensors-timer (run-at-time mls-sensors-update-interval
+                                        mls-sensors-update-interval
                                         (lambda ()
-                                          (setq sensors-stats-mode-line-string (sensors-stats))
+                                          (setq mls-sensors-mode-line-string (mls-sensors-stats))
                                           (force-mode-line-update)
                                           (sit-for 0)))))
 
-(defun sensors-stats-stop ()
+(defun mls-sensors-stop ()
   "Stop displaying sensors usage stats in the mode-line."
   (interactive)
-  (setq sensors-stats-mode-line-string "")
-  (when sensors-stats-use-global-mode-string
-    (setq global-mode-string (delq 'sensors-stats-mode-line-string
+  (setq mls-sensors-mode-line-string "")
+  (when mls-sensors-use-global-mode-string
+    (setq global-mode-string (delq 'mls-sensors-mode-line-string
                                    global-mode-string)))
-  (setq sensors-stats-timer
-        (and sensors-stats-timer (cancel-timer sensors-stats-timer))))
+  (setq mls-sensors-timer
+        (and mls-sensors-timer (cancel-timer mls-sensors-timer))))
 
-(defun sensors-stats ()
+(defun mls-sensors-stats ()
   "Build the stats."
-  (format-sensors-stats sensors-stats-format))
+  (mls-sensors-format-expand mls-sensors-format))
 
-(defun format-sensors-stats (format)
+(defun mls-sensors-format-expand (format)
   "Expand the FORMAT."
-  (let ((stats (sensors-stats-fetch)))
-    (mls-format-expand sensors-stats-formatters format stats)))
+  (let ((stats (mls-sensors-fetch)))
+    (mls-format-expand mls-sensors-formatters format stats)))
 
-(defun sensors-stats-fetch ()
+(defun mls-sensors-fetch ()
   "Return a bunch of sensors stats in a form of an alist."
   (let ((stats (mapcar #'(lambda (s) (split-string s ":"))
                  (delete "" (split-string
-                   (shell-command-to-string sensors-stats-command)
+                   (shell-command-to-string mls-sensors-command)
                    "\n")))))
     (mapcar (lambda (lst)
               (cons (car lst)
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(defun sensors-stats-formatters-init ()
+(defun mls-sensors-formatters-init ()
   "Initialize the formatters."
-  (setq sensors-stats-format (mapconcat #'(lambda (pattern)
+  (setq mls-sensors-format (mapconcat #'(lambda (pattern)
                                             (concat "%" (car pattern)))
-                                        sensors-stats-patterns
+                                        mls-sensors-patterns
                                         " "))
-  (setq sensors-stats-formatters
+  (setq mls-sensors-formatters
         (mapcar #'(lambda (pattern-list)
                     `(,(car pattern-list)
                            lambda (stats)
                            (number-to-string (cadr (assoc ,(cadr pattern-list) stats)))))
-                sensors-stats-patterns)))
+                mls-sensors-patterns)))
 
-(provide 'sensors-stats)
-;;; sensors-stats ends here
+(provide 'mls-sensors)
+;;; mls-sensors ends here

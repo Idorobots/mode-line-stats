@@ -1,4 +1,4 @@
-;;; cpu-stats.el --- display various CPU stats in the mode-line  -*- coding: mule-utf-8 -*-
+;;; mls-cpu.el --- display various CPU stats in the mode-line  -*- coding: mule-utf-8 -*-
 
 ;; Copyright (C) 2012 Kajetan Rzepecki
 
@@ -24,13 +24,13 @@
 
 ;;; Usage:
 
-;; (require 'cpu-stats)
-;; (cpu-stats-start)
+;; (require 'mls-cpu)
+;; (mls-cpu-start)
 
 
 ;; There are a few variables to tweak:
-;;   `cpu-stats-update-interval' - Time interval after which current CPU stats are updated.
-;;   `cpu-stats-format' - A string format used in the mode-line.
+;;   `mls-cpu-update-interval' - Time interval after which current CPU stats are updated.
+;;   `mls-cpu-format' - A string format used in the mode-line.
 ;;                      Supports the following escape sequences:
 ;;      %A - Average CPU usage across multiple cores in percent.
 ;;      %C# - CPU usage of core number # (starting from 0) in percent.
@@ -45,15 +45,15 @@
 ;;; Code:
 
 (require 'cl)
-(require 'mls-utils)
+(require 'mls-common)
 
-(defvar *previous-stats* nil)
-(defvar cpu-stats-timer nil)
-(defvar cpu-stats-mode-line-string "")
-(defvar cpu-stats-formatters nil)
-(defvar cpu-stats-use-global-mode-string t)
+(defvar *mls-cpu-previous-stats* nil)
+(defvar mls-cpu-timer nil)
+(defvar mls-cpu-mode-line-string "")
+(defvar mls-cpu-formatters nil)
+(defvar mls-cpu-use-global-mode-string t)
 
-(defvar cpu-stats-settings
+(defvar mls-cpu-settings
   '((:formats
      ((:primary "&A{c}")
       (:secondary " CPU[%C0{%%},%C1{%%}]")
@@ -70,16 +70,16 @@
               (0.0  "norm"))))))
   "CPU stats settings.")
 
-(defgroup cpu-stats nil
+(defgroup mls-cpu nil
   "Display various CPU stats in the mode-line."
-  :group 'cpu-stats)
+  :group 'mls-cpu)
 
-(defcustom cpu-stats-update-interval 2
+(defcustom mls-cpu-update-interval 2
   "Number of seconds between CPU stats recalculation."
   :type 'number
-  :group 'cpu-stats)
+  :group 'mls-cpu)
 
-(defcustom cpu-stats-format "%A %C0 %C1"
+(defcustom mls-cpu-format "%A %C0 %C1"
   "Format string:
 %A - average CPU usage in percent.
 %C# - CPU usage of #th core in percent.
@@ -87,46 +87,46 @@
 %_s - System CPU usage of core _.
 %_i - IO CPU usage of core _."
   :type 'string
-  :group 'cpu-stats)
+  :group 'mls-cpu)
 
-(defun cpu-stats-start ()
+(defun mls-cpu-start ()
   "Start displaying CPU usage stats in the mode-line."
   (interactive)
-  (when cpu-stats-use-global-mode-string
-    (add-to-list 'global-mode-string 'cpu-stats-mode-line-string t))
-  (and cpu-stats-timer (cancel-timer cpu-stats-timer))
-  (setq cpu-stats-mode-line-string "")
-  (setq *previous-stats* (read-stats))
-  (setq cpu-stats-timer (run-at-time cpu-stats-update-interval
-                                     cpu-stats-update-interval
+  (when mls-cpu-use-global-mode-string
+    (add-to-list 'global-mode-string 'mls-cpu-mode-line-string t))
+  (and mls-cpu-timer (cancel-timer mls-cpu-timer))
+  (setq mls-cpu-mode-line-string "")
+  (setq *mls-cpu-previous-stats* (mls-cpu-read-stats))
+  (setq mls-cpu-timer (run-at-time mls-cpu-update-interval
+                                     mls-cpu-update-interval
                                      (lambda ()
-                                       (setq cpu-stats-mode-line-string (cpu-stats))
+                                       (setq mls-cpu-mode-line-string (mls-cpu-stats))
                                        (force-mode-line-update)
                                        (sit-for 0)))))
 
-(defun cpu-stats-stop ()
+(defun mls-cpu-stop ()
   "Stop displaying CPU usage stats in the mode-line."
   (interactive)
-  (setq cpu-stats-mode-line-string "")
-  (when cpu-stats-use-global-mode-string
-    (setq global-mode-string (delq 'cpu-stats-mode-line-string
+  (setq mls-cpu-mode-line-string "")
+  (when mls-cpu-use-global-mode-string
+    (setq global-mode-string (delq 'mls-cpu-mode-line-string
                                    global-mode-string)))
-  (setq cpu-stats-timer
-        (and cpu-stats-timer (cancel-timer cpu-stats-timer))))
+  (setq mls-cpu-timer
+        (and mls-cpu-timer (cancel-timer mls-cpu-timer))))
 
-(defun cpu-stats ()
-  (format-cpu-stats cpu-stats-format))
+(defun mls-cpu-stats ()
+  (mls-cpu-format-expand mls-cpu-format))
 
-(defun format-cpu-stats (format)
-  (let ((stats (cpu-stats-fetch)))
-    (mls-format-expand cpu-stats-formatters format stats)))
+(defun mls-cpu-format-expand (format)
+  (let ((stats (mls-cpu-fetch)))
+    (mls-format-expand mls-cpu-formatters format stats)))
 
-(defun cpu-stats-fetch ()
+(defun mls-cpu-fetch ()
   "Returns a bunch of CPU stats for each core and averages in a form of an alist."
   ;; TODO Needs moar stats.
   (let* ((cores (remove-if-not (lambda (line)
                                  (string-prefix-p "cpu" (car line)))
-                               (read-stats)))
+                               (mls-cpu-read-stats)))
          (stats (mls-mapcar*
                         (lambda (cpu prev-cpu)
                           (let* ((norm-user (nth 1 cpu))
@@ -150,12 +150,12 @@
                                  (io-result (/ (- iowait prev-iowait)
                                                step-denom)))
                           (list (car cpu) user-result sys-result io-result)))
-                        cores *previous-stats*)))
-    (setq *previous-stats* cores)
+                        cores *mls-cpu-previous-stats*)))
+    (setq *mls-cpu-previous-stats* cores)
     stats))
 
-(defun read-stats ()
-  "Reads /proc/stat and returns an alist of cores every `cpu-stats-update-interval'."
+(defun mls-cpu-read-stats ()
+  "Reads /proc/stat and returns an alist of cores every `mls-cpu-update-interval'."
   (let ((stats (remove-if (lambda (str) (string= str ""))
                  (split-string
                    (shell-command-to-string "cat /proc/stat")
@@ -167,7 +167,7 @@
                               (cdr s)))))
             stats)))
 
-(defmacro make-cpu-functions (name cpu-name)
+(defmacro mls-cpu-make-functions (name cpu-name)
   `(list
     ;; User CPU usage.
     (cons ,(concat name "u")
@@ -186,19 +186,18 @@
           (lambda (stats)
             (format "%.0f" (* 100 (apply #'+ (cdr (assoc ,cpu-name stats)))))))))
 
-(setq cpu-stats-formatters
-  `(,@(make-cpu-functions "A" "cpu")
-    ,@(make-cpu-functions "C0" "cpu0")
-    ,@(make-cpu-functions "C1" "cpu1")
-    ,@(make-cpu-functions "C2" "cpu2")
-    ,@(make-cpu-functions "C3" "cpu3")
-    ,@(make-cpu-functions "C4" "cpu4")
-    ,@(make-cpu-functions "C5" "cpu5")
-    ,@(make-cpu-functions "C6" "cpu6")
-    ,@(make-cpu-functions "C7" "cpu7")
+(setq mls-cpu-formatters
+  `(,@(mls-cpu-make-functions "A" "cpu")
+    ,@(mls-cpu-make-functions "C0" "cpu0")
+    ,@(mls-cpu-make-functions "C1" "cpu1")
+    ,@(mls-cpu-make-functions "C2" "cpu2")
+    ,@(mls-cpu-make-functions "C3" "cpu3")
+    ,@(mls-cpu-make-functions "C4" "cpu4")
+    ,@(mls-cpu-make-functions "C5" "cpu5")
+    ,@(mls-cpu-make-functions "C6" "cpu6")
+    ,@(mls-cpu-make-functions "C7" "cpu7")
     ; ...
 ))
 
-(provide 'cpu-stats)
-
-;;; file ends here
+(provide 'mls-cpu)
+;;; mls-cpu.el ends here
