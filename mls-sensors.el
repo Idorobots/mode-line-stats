@@ -99,12 +99,8 @@ Second value is the `sensors` label.")
 
 (defun mls-sensors-stats ()
   "Build the stats."
-  (mls-sensors-format-expand mls-sensors-format))
-
-(defun mls-sensors-format-expand (format)
-  "Expand the FORMAT."
   (let ((stats (mls-sensors-fetch)))
-    (mls-format-expand mls-sensors-formatters format stats)))
+    (mls-format-expand mls-sensors-formatters mls-sensors-format stats)))
 
 (defun mls-sensors-fetch ()
   "Return a bunch of sensors stats in a form of an alist."

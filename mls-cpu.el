@@ -115,11 +115,9 @@
         (and mls-cpu-timer (cancel-timer mls-cpu-timer))))
 
 (defun mls-cpu-stats ()
-  (mls-cpu-format-expand mls-cpu-format))
-
-(defun mls-cpu-format-expand (format)
+  "Build stats."
   (let ((stats (mls-cpu-fetch)))
-    (mls-format-expand mls-cpu-formatters format stats)))
+    (mls-format-expand mls-cpu-formatters mls-cpu-format stats)))
 
 (defun mls-cpu-fetch ()
   "Returns a bunch of CPU stats for each core and averages in a form of an alist."

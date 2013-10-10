@@ -105,11 +105,9 @@
         (and mls-disk-timer (cancel-timer mls-disk-timer))))
 
 (defun mls-disk-stats ()
-  (mls-disk-format-expand mls-disk-format))
-
-(defun mls-disk-format-expand (format)
+  "Build stats."
   (let ((stats (mls-disk-fetch)))
-    (mls-format-expand mls-disk-formatters format stats)))
+    (mls-format-expand mls-disk-formatters mls-disk-format stats)))
 
 (defun mls-disk-fetch ()
   "Returns a bunch of disk stats in a form of an alist."

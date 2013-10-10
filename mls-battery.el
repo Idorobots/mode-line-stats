@@ -114,13 +114,9 @@
   (display-battery-mode -1))
 
 (defun mls-battery-stats ()
-  ""
-  (mls-battery-format-expand mls-battery-format))
-
-(defun mls-battery-format-expand (format)
-  ""
+  "Build stats."
   (let ((stats (mls-battery-fetch)))
-    (mls-format-expand mls-battery-formatters format stats)))
+    (mls-format-expand mls-battery-formatters mls-battery-format stats)))
 
 (defun mls-battery-fetch ()
   "Return a bunch of disk stats in a form of an alist."

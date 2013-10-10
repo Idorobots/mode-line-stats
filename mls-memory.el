@@ -126,11 +126,9 @@
         (and mls-memory-timer (cancel-timer mls-memory-timer))))
 
 (defun mls-memory-stats ()
-  (mls-memory-format-expand mls-memory-format))
-
-(defun mls-memory-format-expand (format)
+  "Build stats."
   (let ((stats (mls-memory-fetch)))
-    (mls-format-expand mls-memory-formatters format stats)))
+    (mls-format-expand mls-memory-formatters mls-memory-format stats)))
 
 (defun mls-memory-fetch ()
   "Returns a bunch of memory stats in a form of an alist."
