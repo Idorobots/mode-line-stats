@@ -82,35 +82,35 @@
   :type 'string
   :group 'mls-battery)
 
+(defun mls-battery-update ()
+  "Update stats."
+  (setq mls-battery-mode-line-string (mls-battery-stats))
+  (force-mode-line-update)
+  (sit-for 0))
+
 (defun mls-battery-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
 
   (setq battery-mode-line-format mls-battery-battery-format)
   (display-battery-mode)
-  (setq global-mode-string (delq 'battery-mode-line-string
-                                 global-mode-string))
-  (when mls-battery-use-global-mode-string
-    (add-to-list 'global-mode-string 'mls-battery-mode-line-string t))
+  (mls-remove-global-mode-string 'battery-mode-line-string)
 
-  (and mls-battery-timer (cancel-timer mls-battery-timer))
+  (when mls-battery-use-global-mode-string
+    (mls-add-global-mode-string 'mls-battery-mode-line-string))
+
   (setq mls-battery-mode-line-string "")
-  (setq mls-battery-timer (run-at-time mls-battery-update-interval
-                                        mls-battery-update-interval
-                                        (lambda ()
-                                          (setq mls-battery-mode-line-string (mls-battery-stats))
-                                          (force-mode-line-update)
-                                          (sit-for 0)))))
+  (mls-set-timer 'mls-battery-timer
+                 mls-battery-update-interval
+                 'mls-battery-update))
 
 (defun mls-battery-stop ()
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
   (setq mls-battery-mode-line-string "")
   (when mls-battery-use-global-mode-string
-    (setq global-mode-string (delq 'mls-battery-mode-line-string
-                                   global-mode-string)))
-  (setq mls-battery-timer
-        (and mls-battery-timer (cancel-timer mls-battery-timer)))
+    (mls-remove-global-mode-string 'mls-battery-mode-line-string))
+  (mls-cancel-timer 'mls-battery-timer)
   (display-battery-mode -1))
 
 (defun mls-battery-stats ()

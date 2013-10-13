@@ -70,32 +70,33 @@ Second value is the `sensors` label.")
 
 (defvar mls-sensors-format nil)
 
+(defun mls-sensors-update ()
+  "Update stats."
+  (setq mls-sensors-mode-line-string (mls-sensors-stats))
+  (force-mode-line-update)
+  (sit-for 0))
+
 (defun mls-sensors-start ()
   "Start displaying sensors usage stats in the mode-line."
   (interactive)
   (when mls-sensors-use-global-mode-string
-    (add-to-list 'global-mode-string 'mls-sensors-mode-line-string t))
+    (mls-add-global-mode-string 'mls-sensors-mode-line-string))
 
   (mls-sensors-formatters-init)
 
-  (and mls-sensors-timer (cancel-timer mls-sensors-timer))
   (setq mls-sensors-mode-line-string "")
-  (setq mls-sensors-timer (run-at-time mls-sensors-update-interval
-                                        mls-sensors-update-interval
-                                        (lambda ()
-                                          (setq mls-sensors-mode-line-string (mls-sensors-stats))
-                                          (force-mode-line-update)
-                                          (sit-for 0)))))
+  (mls-set-timer 'mls-sensors-timer
+                 mls-sensors-update-interval
+                 'mls-sensors-update))
 
 (defun mls-sensors-stop ()
   "Stop displaying sensors usage stats in the mode-line."
   (interactive)
   (setq mls-sensors-mode-line-string "")
   (when mls-sensors-use-global-mode-string
-    (setq global-mode-string (delq 'mls-sensors-mode-line-string
-                                   global-mode-string)))
-  (setq mls-sensors-timer
-        (and mls-sensors-timer (cancel-timer mls-sensors-timer))))
+    (mls-remove-global-mode-string 'mls-sensors-mode-line-string))
+
+  (mls-cancel-timer 'mls-sensors-timer))
 
 (defun mls-sensors-stats ()
   "Build the stats."

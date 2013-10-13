@@ -106,29 +106,31 @@
              (0.0  "norm"))))))
   "MISC stats settings.")
 
+(defun mls-misc-update ()
+  "Update stats."
+  (setq mls-misc-mode-line-string (mls-misc-stats))
+  (force-mode-line-update)
+  (sit-for 0))
+
 (defun mls-misc-start ()
   "Start displaying misc stats in the mode-line."
   (interactive)
   (when mls-misc-use-global-mode-string
-    (add-to-list 'global-mode-string 'mls-misc-mode-line-string t))
-  (and mls-misc-timer (cancel-timer mls-misc-timer))
+    (mls-add-global-mode-string 'mls-misc-mode-line-string))
+
   (setq mls-misc-mode-line-string "")
-  (setq mls-misc-timer (run-at-time mls-misc-update-interval
-                                      mls-misc-update-interval
-                                      (lambda ()
-                                        (setq mls-misc-mode-line-string (mls-misc-stats))
-                                        (force-mode-line-update)
-                                        (sit-for 0)))))
+  (mls-set-timer 'mls-misc-timer
+                 mls-misc-update-interval
+                 'mls-misc-update))
 
 (defun mls-misc-stop ()
   "Stop displaying misc system stats in the mode-line."
   (interactive)
   (setq mls-misc-mode-line-string "")
-  (when mls-misc-use-global-mode-string
-    (setq global-mode-string (delq 'mls-misc-mode-line-string
-                                   global-mode-string)))
-  (setq mls-misc-timer
-        (and mls-misc-timer (cancel-timer mls-misc-timer))))
+  (when mls-disk-use-global-mode-string
+    (mls-remove-global-mode-string 'mls-disk-mode-line-string))
+
+  (mls-cancel-timer 'mls-misc-timer))
 
 (defun mls-misc-stats ()
   (let* ((load (map 'list

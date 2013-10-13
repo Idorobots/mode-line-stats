@@ -89,30 +89,32 @@
   :type 'string
   :group 'mls-cpu)
 
+(defun mls-cpu-update ()
+  "Update stats."
+  (setq mls-cpu-mode-line-string (mls-cpu-stats))
+  (force-mode-line-update)
+  (sit-for 0))
+
 (defun mls-cpu-start ()
   "Start displaying CPU usage stats in the mode-line."
   (interactive)
   (when mls-cpu-use-global-mode-string
-    (add-to-list 'global-mode-string 'mls-cpu-mode-line-string t))
-  (and mls-cpu-timer (cancel-timer mls-cpu-timer))
+    (mls-add-global-mode-string 'mls-cpu-mode-line-string))
+
   (setq mls-cpu-mode-line-string "")
   (setq *mls-cpu-previous-stats* (mls-cpu-read-stats))
-  (setq mls-cpu-timer (run-at-time mls-cpu-update-interval
-                                     mls-cpu-update-interval
-                                     (lambda ()
-                                       (setq mls-cpu-mode-line-string (mls-cpu-stats))
-                                       (force-mode-line-update)
-                                       (sit-for 0)))))
+  (mls-set-timer 'mls-cpu-timer
+                 mls-cpu-update-interval
+                 'mls-cpu-update))
 
 (defun mls-cpu-stop ()
   "Stop displaying CPU usage stats in the mode-line."
   (interactive)
   (setq mls-cpu-mode-line-string "")
   (when mls-cpu-use-global-mode-string
-    (setq global-mode-string (delq 'mls-cpu-mode-line-string
-                                   global-mode-string)))
-  (setq mls-cpu-timer
-        (and mls-cpu-timer (cancel-timer mls-cpu-timer))))
+    (mls-remove-global-mode-string 'mls-cpu-mode-line-string))
+
+  (mls-cancel-timer 'mls-cpu-timer))
 
 (defun mls-cpu-stats ()
   "Build stats."

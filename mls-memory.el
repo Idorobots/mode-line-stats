@@ -101,29 +101,31 @@
   :type 'string
   :group 'mls-memory)
 
+(defun mls-memory-update ()
+  "Update stats."
+  (setq mls-memory-mode-line-string (mls-memory-stats))
+  (force-mode-line-update)
+  (sit-for 0))
+
 (defun mls-memory-start ()
   "Start displaying memory usage stats in the mode-line."
   (interactive)
   (when mls-memory-use-global-mode-string
-    (add-to-list 'global-mode-string 'mls-memory-mode-line-string t))
-  (and mls-memory-timer (cancel-timer mls-memory-timer))
+    (mls-add-global-mode-string 'mls-memory-mode-line-string))
+
   (setq mls-memory-mode-line-string "")
-  (setq mls-memory-timer (run-at-time mls-memory-update-interval
-                                        mls-memory-update-interval
-                                        (lambda ()
-                                          (setq mls-memory-mode-line-string (mls-memory-stats))
-                                          (force-mode-line-update)
-                                          (sit-for 0)))))
+  (mls-set-timer 'mls-memory-timer
+                 mls-memory-update-interval
+                 'mls-memory-update))
 
 (defun mls-memory-stop ()
   "Stop displaying memory usage stats in the mode-line."
   (interactive)
   (setq mls-memory-mode-line-string "")
   (when mls-memory-use-global-mode-string
-    (setq global-mode-string (delq 'mls-memory-mode-line-string
-                                   global-mode-string)))
-  (setq mls-memory-timer
-        (and mls-memory-timer (cancel-timer mls-memory-timer))))
+    (mls-remove-global-mode-string 'mls-memory-mode-line-string))
+
+  (mls-cancel-timer 'mls-memory-timer))
 
 (defun mls-memory-stats ()
   "Build stats."

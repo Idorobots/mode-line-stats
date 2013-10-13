@@ -76,33 +76,34 @@
   :type 'string
   :group 'mls-disk)
 
+(defun mls-disk-update ()
+  "Update stats."
+  (setq mls-disk-mode-line-string (mls-disk-stats))
+  (force-mode-line-update)
+  (sit-for 0))
+
 (defun mls-disk-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
   (when mls-disk-use-global-mode-string
-    (add-to-list 'global-mode-string 'mls-disk-mode-line-string t))
+    (mls-add-global-mode-string 'mls-disk-mode-line-string))
 
   (unless mls-disk-device
     (setq mls-disk-device (caar (mls-disk-fetch))))
 
-  (and mls-disk-timer (cancel-timer mls-disk-timer))
   (setq mls-disk-mode-line-string "")
-  (setq mls-disk-timer (run-at-time mls-disk-update-interval
-                                        mls-disk-update-interval
-                                        (lambda ()
-                                          (setq mls-disk-mode-line-string (mls-disk-stats))
-                                          (force-mode-line-update)
-                                          (sit-for 0)))))
+  (mls-set-timer 'mls-disk-timer
+                 mls-disk-update-interval
+                 'mls-disk-update))
 
 (defun mls-disk-stop ()
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
   (setq mls-disk-mode-line-string "")
   (when mls-disk-use-global-mode-string
-    (setq global-mode-string (delq 'mls-disk-mode-line-string
-                                   global-mode-string)))
-  (setq mls-disk-timer
-        (and mls-disk-timer (cancel-timer mls-disk-timer))))
+    (mls-remove-global-mode-string 'mls-disk-mode-line-string))
+
+  (mls-cancel-timer 'mls-disk-timer))
 
 (defun mls-disk-stats ()
   "Build stats."
