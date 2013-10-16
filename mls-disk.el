@@ -45,7 +45,6 @@
 (defvar mls-disk-device nil)
 (defvar mls-disk-timer nil)
 (defvar mls-disk-mode-line-string "")
-(defvar mls-disk-use-global-mode-string t)
 
 (defvar mls-disk-settings
   '((:formats
@@ -85,9 +84,6 @@
 (defun mls-disk-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
-  (when mls-disk-use-global-mode-string
-    (mls-add-global-mode-string 'mls-disk-mode-line-string))
-
   (unless mls-disk-device
     (setq mls-disk-device (caar (mls-disk-fetch))))
 
@@ -100,9 +96,6 @@
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
   (setq mls-disk-mode-line-string "")
-  (when mls-disk-use-global-mode-string
-    (mls-remove-global-mode-string 'mls-disk-mode-line-string))
-
   (mls-cancel-timer 'mls-disk-timer))
 
 (defun mls-disk-stats ()

@@ -39,7 +39,6 @@
 (defvar mls-sensors-formatters nil)
 (defvar mls-sensors-timer nil)
 (defvar mls-sensors-mode-line-string "")
-(defvar mls-sensors-use-global-mode-string t)
 (defvar mls-sensors-command "sensors")
 (defvar mls-sensors-patterns
   '(("c0" "Core 0")
@@ -79,9 +78,6 @@ Second value is the `sensors` label.")
 (defun mls-sensors-start ()
   "Start displaying sensors usage stats in the mode-line."
   (interactive)
-  (when mls-sensors-use-global-mode-string
-    (mls-add-global-mode-string 'mls-sensors-mode-line-string))
-
   (mls-sensors-formatters-init)
 
   (setq mls-sensors-mode-line-string "")
@@ -93,9 +89,6 @@ Second value is the `sensors` label.")
   "Stop displaying sensors usage stats in the mode-line."
   (interactive)
   (setq mls-sensors-mode-line-string "")
-  (when mls-sensors-use-global-mode-string
-    (mls-remove-global-mode-string 'mls-sensors-mode-line-string))
-
   (mls-cancel-timer 'mls-sensors-timer))
 
 (defun mls-sensors-stats ()

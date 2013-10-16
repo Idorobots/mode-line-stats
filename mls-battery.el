@@ -41,7 +41,6 @@
 (defvar mls-battery-formatters nil)
 (defvar mls-battery-timer nil)
 (defvar mls-battery-mode-line-string "")
-(defvar mls-battery-use-global-mode-string t)
 
 (defvar mls-battery-battery-format "%c %r %B %d %L %p %m %h %t")
 
@@ -94,10 +93,8 @@
 
   (setq battery-mode-line-format mls-battery-battery-format)
   (display-battery-mode)
-  (mls-remove-global-mode-string 'battery-mode-line-string)
-
-  (when mls-battery-use-global-mode-string
-    (mls-add-global-mode-string 'mls-battery-mode-line-string))
+  (setq global-mode-string (delq 'battery-mode-line-string
+                                 global-mode-string))
 
   (setq mls-battery-mode-line-string "")
   (mls-set-timer 'mls-battery-timer
@@ -108,8 +105,6 @@
   "Stop displaying disk usage stats in the mode-line."
   (interactive)
   (setq mls-battery-mode-line-string "")
-  (when mls-battery-use-global-mode-string
-    (mls-remove-global-mode-string 'mls-battery-mode-line-string))
   (mls-cancel-timer 'mls-battery-timer)
   (display-battery-mode -1))
 

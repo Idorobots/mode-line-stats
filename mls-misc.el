@@ -90,7 +90,6 @@
 (defvar mls-misc-mode-line-string "")
 (defvar mls-misc-timer nil)
 (defvar mls-misc-formatters nil)
-(defvar mls-misc-use-global-mode-string t)
 
 (defvar mls-misc-settings
   '((:formats
@@ -115,9 +114,6 @@
 (defun mls-misc-start ()
   "Start displaying misc stats in the mode-line."
   (interactive)
-  (when mls-misc-use-global-mode-string
-    (mls-add-global-mode-string 'mls-misc-mode-line-string))
-
   (setq mls-misc-mode-line-string "")
   (mls-set-timer 'mls-misc-timer
                  mls-misc-update-interval
@@ -127,9 +123,6 @@
   "Stop displaying misc system stats in the mode-line."
   (interactive)
   (setq mls-misc-mode-line-string "")
-  (when mls-disk-use-global-mode-string
-    (mls-remove-global-mode-string 'mls-disk-mode-line-string))
-
   (mls-cancel-timer 'mls-misc-timer))
 
 (defun mls-misc-stats ()

@@ -58,7 +58,6 @@
 (defvar mls-memory-formatters nil)
 (defvar mls-memory-timer nil)
 (defvar mls-memory-mode-line-string "")
-(defvar mls-memory-use-global-mode-string t)
 
 (defvar mls-memory-settings
   '((:formats
@@ -110,9 +109,6 @@
 (defun mls-memory-start ()
   "Start displaying memory usage stats in the mode-line."
   (interactive)
-  (when mls-memory-use-global-mode-string
-    (mls-add-global-mode-string 'mls-memory-mode-line-string))
-
   (setq mls-memory-mode-line-string "")
   (mls-set-timer 'mls-memory-timer
                  mls-memory-update-interval
@@ -122,9 +118,6 @@
   "Stop displaying memory usage stats in the mode-line."
   (interactive)
   (setq mls-memory-mode-line-string "")
-  (when mls-memory-use-global-mode-string
-    (mls-remove-global-mode-string 'mls-memory-mode-line-string))
-
   (mls-cancel-timer 'mls-memory-timer))
 
 (defun mls-memory-stats ()

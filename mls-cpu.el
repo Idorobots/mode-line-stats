@@ -51,7 +51,6 @@
 (defvar mls-cpu-timer nil)
 (defvar mls-cpu-mode-line-string "")
 (defvar mls-cpu-formatters nil)
-(defvar mls-cpu-use-global-mode-string t)
 
 (defvar mls-cpu-settings
   '((:formats
@@ -98,9 +97,6 @@
 (defun mls-cpu-start ()
   "Start displaying CPU usage stats in the mode-line."
   (interactive)
-  (when mls-cpu-use-global-mode-string
-    (mls-add-global-mode-string 'mls-cpu-mode-line-string))
-
   (setq mls-cpu-mode-line-string "")
   (setq *mls-cpu-previous-stats* (mls-cpu-read-stats))
   (mls-set-timer 'mls-cpu-timer
@@ -111,9 +107,6 @@
   "Stop displaying CPU usage stats in the mode-line."
   (interactive)
   (setq mls-cpu-mode-line-string "")
-  (when mls-cpu-use-global-mode-string
-    (mls-remove-global-mode-string 'mls-cpu-mode-line-string))
-
   (mls-cancel-timer 'mls-cpu-timer))
 
 (defun mls-cpu-stats ()

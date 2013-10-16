@@ -459,7 +459,6 @@ VALUES: a list of values used to get the current level"
 (defun mls-enable-module (module-name)
   "Enable the module with name MODULE-NAME."
   (let ((found (mls-module-valid-p module-name))
-        (var-global-mode-string (intern (format "mls-%s-use-global-mode-string" module-name)))
         (var-fmt (intern (format "mls-%s-format" module-name)))
         (var-start (intern (format "mls-%s-start" module-name)))
         (var-settings (intern (format "mls-%s-settings" module-name)))
@@ -468,7 +467,6 @@ VALUES: a list of values used to get the current level"
     (when found
       (require module-file)
       (set var-fmt (mls-get-format (symbol-value var-settings)))
-      (set var-global-mode-string nil)
       (funcall var-start))))
 
 (defun mls-display (module-name module-fmt-type)
