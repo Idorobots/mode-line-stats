@@ -103,10 +103,9 @@
 
 (defun mls-memory-update ()
   "Update stats."
-  (force-mode-line-update)
-  (sit-for 0))
   (setq mls-memory-data (mls-memory-stats))
   (setq mls-memory-mode-line-string (mls-data-to-string mls-memory-data))
+  (mls-module-update))
 
 (defun mls-memory-start ()
   "Start displaying memory usage stats in the mode-line."

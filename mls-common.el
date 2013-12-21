@@ -61,4 +61,10 @@ Return a list."
                                  module-interval
                                  module-function)))
 
+(defun mls-module-update ()
+  "Module update."
+  (interactive)
+  (force-mode-line-update)
+  (sit-for 0))
+
 (provide 'mls-common)

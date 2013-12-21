@@ -91,10 +91,9 @@
 
 (defun mls-cpu-update ()
   "Update stats."
-  (force-mode-line-update)
-  (sit-for 0))
   (setq mls-cpu-data (mls-cpu-stats))
   (setq mls-cpu-mode-line-string (mls-data-to-string mls-cpu-data))
+  (mls-module-update))
 
 (defun mls-cpu-start ()
   "Start displaying CPU usage stats in the mode-line."

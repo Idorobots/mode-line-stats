@@ -72,10 +72,9 @@ Second value is the `sensors` label.")
 
 (defun mls-sensors-update ()
   "Update stats."
-  (force-mode-line-update)
-  (sit-for 0))
   (setq mls-sensors-data (mls-sensors-stats))
   (setq mls-sensors-mode-line-string (mls-data-to-string mls-sensors-data))
+  (mls-module-update))
 
 (defun mls-sensors-start ()
   "Start displaying sensors usage stats in the mode-line."

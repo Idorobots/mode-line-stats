@@ -78,10 +78,9 @@
 
 (defun mls-disk-update ()
   "Update stats."
-  (force-mode-line-update)
-  (sit-for 0))
   (setq mls-disk-data (mls-disk-stats))
   (setq mls-disk-mode-line-string (mls-data-to-string mls-disk-data))
+  (mls-module-update))
 
 (defun mls-disk-start ()
   "Start displaying disk usage stats in the mode-line."

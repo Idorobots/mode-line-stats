@@ -84,10 +84,9 @@
 
 (defun mls-battery-update ()
   "Update stats."
-  (force-mode-line-update)
-  (sit-for 0))
   (setq mls-battery-data (mls-battery-stats))
   (setq mls-battery-mode-line-string (mls-data-to-string mls-battery-data))
+  (mls-module-update))
 
 (defun mls-battery-start ()
   "Start displaying disk usage stats in the mode-line."

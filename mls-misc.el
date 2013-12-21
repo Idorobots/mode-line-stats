@@ -108,10 +108,9 @@
 
 (defun mls-misc-update ()
   "Update stats."
-  (force-mode-line-update)
-  (sit-for 0))
   (setq mls-misc-data (mls-misc-stats))
   (setq mls-misc-mode-line-string (mls-data-to-string mls-misc-data))
+  (mls-module-update))
 
 (defun mls-misc-start ()
   "Start displaying misc stats in the mode-line."
