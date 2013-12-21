@@ -50,7 +50,10 @@
 (defvar mls-disk-settings
   '((:formats
      ((:primary "&p{d}")
-      (:secondary " DISK[%p{%%}]")
+      (:buffer "
+    Used:  %p{%}
+    Free:  %fG{GB}
+    Total: %tG{GB}")
       (:monitor "&p")))
     (:levels
      (("%p" ((90.0 "crit")

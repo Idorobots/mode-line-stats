@@ -56,7 +56,9 @@
 (defvar mls-cpu-settings
   '((:formats
      ((:primary "&A{c}")
-      (:secondary " CPU[%C0{%%},%C1{%%}]")
+      (:buffer "
+    CPU0: %C0{%}
+    CPU1: %C1{%}")
       (:monitor "&A")))
     (:levels
      (("%A" ((90.0 "crit")

@@ -51,7 +51,9 @@ Second value is the `sensors` label.")
 (defvar mls-sensors-settings
   '((:formats
      ((:primary "&c0{t}")
-      (:secondary " SENSORS[%c0{ºC}]")
+      (:buffer "
+    Cpu0 temp: %c0{ºC}
+    Cpu1 temp: %c1{ºC}")
       (:monitor "&c0")))
     (:levels
      (("%c0" ((60.0 "crit")

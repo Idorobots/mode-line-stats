@@ -95,7 +95,8 @@
 (defvar mls-misc-settings
   '((:formats
      ((:primary "&L1{l}")
-      (:secondary " LOAD[%L]")
+      (:buffer "
+    Load avg: %L")
       (:monitor "&L1")))
     (:levels
      (("%L1" ((2.0 "crit")

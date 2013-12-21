@@ -182,26 +182,29 @@ but it will be restored after that.")
   "Critical face used in primary mode-line."
   :group 'mode-line-stats)
 
-(defface mls-norm-secondary-face
+(defface mls-norm-buffer-face
   '((((class color) (background dark))
      :foreground "#b6bd68"))
-  "Normal face used in secondary mode-line."
+  "Normal face used in buffer mode-line."
   :group 'mode-line-stats)
 
-(defface mls-warn-secondary-face
+(defface mls-warn-buffer-face
   '((((class color) (background dark))
      :foreground "#de935f"))
-  "Warning face used in secondary mode-line."
+  "Warning face used in buffer mode-line."
   :group 'mode-line-stats)
 
-(defface mls-crit-secondary-face
+(defface mls-crit-buffer-face
   '((((class color) (background dark))
      :foreground "#cc6666"))
-  "Critical face used in secondary mode-line."
+  "Critical face used in buffer mode-line."
   :group 'mode-line-stats)
 
-(defvar mls-format-secondary nil
-  "Secondary format to show stats.")
+(defvar mls-buffer-name "*mls*"
+  "Buffer name.")
+
+(defvar mls-buffer nil
+  "Buffer object.")
 
 (defvar mls-format-primary nil
   "Primary format to show stats.
@@ -266,7 +269,7 @@ it will return the face of the current level."
     (when level
       (if (eq module-fmt-type :primary)
           (format "mls-%s-primary-face" level)
-        (format "mls-%s-secondary-face" level)))))
+        (format "mls-%s-buffer-face" level)))))
 
 (defun mls-normalize-value (value)
   "Convert the VALUE to integer if contain a number."
@@ -280,11 +283,21 @@ it will return the face of the current level."
         ((or (stringp value) (numberp value))
          value)))
 
-(defun mls-pretty-value (value levels hide-value-p module-fmt-type &optional comment)
+(defun mls-pretty-percent (value)
+  "Return an ascii graph given a percent VALUE."
+  (let* ((width 30)
+         (x (/ (* width value) 100)))
+    (concat "["
+            (make-string x ?|)
+            (make-string (- width x) ?-)
+            "] "
+            (format "%d" value))))
+
+(defun mls-pretty-handler (value levels hide-value-p module-fmt-type &optional comment)
   "Propertize the VALUE according to the current level.
 LEVELS list of levels.
 HIDE-VALUE-P flag to hide the value when displaying.
-MODULE-FMT-TYPE type of the format, usually :primary or :secondary.
+MODULE-FMT-TYPE type of the format, usually :primary or :buffer.
 COMMENT additional text to be propertized and displayed."
 
   (let ((value (mls-normalize-value value))
@@ -296,14 +309,15 @@ COMMENT additional text to be propertized and displayed."
         (progn
           (setq color (mls-get-face levels value module-fmt-type))
 
-          (if (numberp value)
-              (cond ((floatp value) (setq value-fmt "%.2f"))
-                    ((equal comment "%%") (setq value-fmt "%2d"))
-                    (t (setq value-fmt "%d")))
-            (setq value-fmt "%s"))
-
           (unless hide-value-p
-            (setq text-to-show (format value-fmt value)))
+            (cond ((floatp value)
+                   (setq text-to-show (format "%.2f" value)))
+                  ((and (numberp value) (equal comment "%"))
+                   (setq text-to-show (mls-pretty-percent value)))
+                  ((numberp value)
+                   (setq text-to-show (format "%d" value)))
+                  ((stringp value)
+                   (setq text-to-show (format "%s" value)))))
 
           (setq text-to-show (concat text-to-show comment))
 
@@ -393,7 +407,7 @@ VALUES is a list of values."
   "Process the module and return the string to be displayed in mode-line.
 MODULE-ALIST is an alist of settings.
 VALUES is a list of values.
-MODULE-FMT-TYPE is the format type, usually :primary or :secondary."
+MODULE-FMT-TYPE is the format type, usually :primary or :buffer."
   (let ((output-fmt (mls-get-setting module-alist (list :formats module-fmt-type)))
         (formatters (mls-get-formatters module-alist t))
         (current-formatters nil)
@@ -472,7 +486,7 @@ VALUES: a list of values used to get the current level"
 (defun mls-display (module-name module-fmt-type)
   "Display the module in the mode-line.
 MODULE-NAME corresponds to module name.
-MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
+MODULE-FMT-TYPE is the mode-line format type \(:primary or :buffer\)."
   (let ((data nil)
         (mode-line-string nil)
         (output nil)
@@ -482,11 +496,10 @@ MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
         (module-alist-value nil))
 
     (when (mls-module-enabled-p module-name)
-      (setq mode-line-string (intern
-                              (format "mls-%s-mode-line-string" module-name)))
+      (setq data (symbol-value (intern
+                                (format "mls-%s-data" module-name))))
       (setq module-alist-sym (intern
                               (format "mls-%s-settings" module-name)))
-      (setq data (split-string (symbol-value mode-line-string)))
 
       (setq module-alist-value (symbol-value module-alist-sym))
 
@@ -507,16 +520,8 @@ MODULE-FMT-TYPE is the mode-line format type \(:primary or :secondary\)."
 
       output)))
 
-(defun mls-get-header-or-mode-line-format-sym ()
-  "Get header or mode-line symbol acording to mls-position.
-If `mls-position is :left, :right or :global-mode-string
-it will return  `mode-line-format`.  Otherwise will return
-`header-line-format`."
-  (if (eq mls-position :header-line)
-      'header-line-format
-    'mode-line-format))
 
-(defun mls-get-target-format-sym ()
+(defun mls-get-position ()
   "Get the format symbol acording to mls-position.
 If `mls-position is :left or :right it will return
 'mode-line-format.  For :global-mode-string it will
@@ -530,37 +535,15 @@ will return 'header-line-format."
 
 (defun mls-backup-format ()
   "Backup the current 'mode-line-format'."
-  (let ((fmt (symbol-value (mls-get-target-format-sym))))
+  (let ((fmt (symbol-value (mls-get-position))))
     (setq mls-format-backup fmt)))
 
 (defun mls-restore-format ()
   "Restore the backup of 'mode-line-format'."
-  (let ((target (mls-get-target-format-sym)))
+  (let ((target (mls-get-position)))
     (set-default target mls-format-backup)
     (set target mls-format-backup)
     (setq mls-format-backup nil)
-    (force-mode-line-update)))
-
-(defun mls-mode-line-switch-to (&optional fmt-type)
-  "Switch mode-line formats.
-FMT-TYPE should be the mode line format type.
- Either :primary or :secondary"
-  (let ((target (mls-get-header-or-mode-line-format-sym)))
-    (if (eq fmt-type :secondary)
-        (set target mls-format-secondary)
-      (progn
-        (set-default target mls-format)
-        (set target mls-format)))))
-
-(defun mls-mode-line-toggle ()
-  "Toggle the mode line format."
-  (interactive)
-  (let ((fmt (symbol-value (mls-get-header-or-mode-line-format-sym))))
-    (if (eq fmt mls-format)
-        (mls-mode-line-switch-to :secondary)
-      (mls-mode-line-switch-to :primary))
-
-    ;; Update the mode line
     (force-mode-line-update)))
 
 (defun mls-set-position (position)
@@ -581,25 +564,54 @@ FMT-TYPE should be the mode line format type.
                (cons mls-format-primary
                      mls-format-backup)))))
 
+(defun mls-buffer-init ()
+  "Create mls buffer."
+  (setq mls-buffer (get-buffer-create mls-buffer-name)))
+
+(defun mls-buffer-module-title (module-name)
+  "Return the module title for MODULE-NAME."
+  (let ((module-name (capitalize (format "%s" module-name))))
+    (propertize (format "\n %s stats\n"
+                        module-name)
+                'face font-lock-type-face)))
+
+(defun mls-buffer-update ()
+  "Update mls buffer."
+  (interactive)
+  (with-current-buffer mls-buffer
+    (erase-buffer)
+    (insert (propertize "Mode line stats" 'face font-lock-preprocessor-face))
+    (insert "\n")
+    (dolist (module mls-modules)
+      (insert (mls-buffer-module-title module))
+      (insert (mls-display (format "%s" module) :buffer))
+      (insert "\n"))))
+
 (defun mls-mode-line-setup ()
   "Add mode-line-stats format into currrent mode-line."
   (unless mls-format-primary
-    (mls-generate-mode-line-format :primary))
+    (mls-generate-mode-line-format))
 
-  (unless mls-format-secondary
-    (mls-generate-mode-line-format :secondary))
+  (unless mls-buffer
+    (mls-buffer-init))
 
   (mls-set-position mls-position))
 
-(defun mls-generate-mode-line-format (fmt-type)
-  "Generate the mode line format for FMT-TYPE using `mls-modules`."
-  (let ((mode-line-format-sym (if (eq fmt-type :primary)
-                                  'mls-format-primary
-                                'mls-format-secondary))
+(defun mls-generate-mode-line-format ()
+  "Generate the mode line format using `mls-modules`."
+  (let ((mode-line-format-sym 'mls-format-primary)
         (modules (reverse mls-modules)))
     (dolist (module-sym modules)
-      (push `(:eval (mls-display ,(symbol-name module-sym) ,fmt-type))
+      (push `(:eval (mls-display ,(symbol-name module-sym) :primary))
             (symbol-value mode-line-format-sym)))))
+
+(defun mls-enable-mode-line ()
+  "Enable mode-line format."
+  (let ((target (if (eq mls-position :header-line)
+                    'header-line-format
+                  'mode-line-format)))
+    (set-default target mls-format)
+    (set target mls-format)))
 
 (defun mls-turn-on ()
   "Turn on mode-line-stats mode."
@@ -612,7 +624,7 @@ FMT-TYPE should be the mode line format type.
 
   (mls-mode-line-setup)
 
-  (mls-mode-line-switch-to :primary)
+  (mls-enable-mode-line)
 
   (mls-keymap-setup))
 

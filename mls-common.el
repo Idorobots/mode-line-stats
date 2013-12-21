@@ -64,6 +64,8 @@ Return a list."
 (defun mls-module-update ()
   "Module update."
   (interactive)
+  (when (fboundp 'mls-buffer-update)
+    (mls-buffer-update))
   (force-mode-line-update)
   (sit-for 0))
 
