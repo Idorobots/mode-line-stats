@@ -49,6 +49,7 @@
 
 (defvar *mls-cpu-previous-stats* nil)
 (defvar mls-cpu-timer nil)
+(defvar mls-cpu-data nil)
 (defvar mls-cpu-mode-line-string "")
 (defvar mls-cpu-formatters nil)
 
@@ -90,9 +91,10 @@
 
 (defun mls-cpu-update ()
   "Update stats."
-  (setq mls-cpu-mode-line-string (mls-cpu-stats))
   (force-mode-line-update)
   (sit-for 0))
+  (setq mls-cpu-data (mls-cpu-stats))
+  (setq mls-cpu-mode-line-string (mls-data-to-string mls-cpu-data))
 
 (defun mls-cpu-start ()
   "Start displaying CPU usage stats in the mode-line."
@@ -112,7 +114,7 @@
 (defun mls-cpu-stats ()
   "Build stats."
   (let ((stats (mls-cpu-fetch)))
-    (mls-format-expand mls-cpu-formatters mls-cpu-format stats)))
+    (mls-format-expand-list mls-cpu-formatters mls-cpu-format stats)))
 
 (defun mls-cpu-fetch ()
   "Returns a bunch of CPU stats for each core and averages in a form of an alist."

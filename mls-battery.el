@@ -40,6 +40,7 @@
 
 (defvar mls-battery-formatters nil)
 (defvar mls-battery-timer nil)
+(defvar mls-battery-data nil)
 (defvar mls-battery-mode-line-string "")
 
 (defvar mls-battery-battery-format "%c %r %B %d %L %p %m %h %t")
@@ -83,9 +84,10 @@
 
 (defun mls-battery-update ()
   "Update stats."
-  (setq mls-battery-mode-line-string (mls-battery-stats))
   (force-mode-line-update)
   (sit-for 0))
+  (setq mls-battery-data (mls-battery-stats))
+  (setq mls-battery-mode-line-string (mls-data-to-string mls-battery-data))
 
 (defun mls-battery-start ()
   "Start displaying disk usage stats in the mode-line."
@@ -111,7 +113,7 @@
 (defun mls-battery-stats ()
   "Build stats."
   (let ((stats (mls-battery-fetch)))
-    (mls-format-expand mls-battery-formatters mls-battery-format stats)))
+    (mls-format-expand-list mls-battery-formatters mls-battery-format stats)))
 
 (defun mls-battery-fetch ()
   "Return a bunch of disk stats in a form of an alist."

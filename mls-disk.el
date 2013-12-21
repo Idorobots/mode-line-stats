@@ -44,6 +44,7 @@
 (defvar mls-disk-formatters nil)
 (defvar mls-disk-device nil)
 (defvar mls-disk-timer nil)
+(defvar mls-disk-data nil)
 (defvar mls-disk-mode-line-string "")
 
 (defvar mls-disk-settings
@@ -77,9 +78,10 @@
 
 (defun mls-disk-update ()
   "Update stats."
-  (setq mls-disk-mode-line-string (mls-disk-stats))
   (force-mode-line-update)
   (sit-for 0))
+  (setq mls-disk-data (mls-disk-stats))
+  (setq mls-disk-mode-line-string (mls-data-to-string mls-disk-data))
 
 (defun mls-disk-start ()
   "Start displaying disk usage stats in the mode-line."
@@ -101,7 +103,7 @@
 (defun mls-disk-stats ()
   "Build stats."
   (let ((stats (mls-disk-fetch)))
-    (mls-format-expand mls-disk-formatters mls-disk-format stats)))
+    (mls-format-expand-list mls-disk-formatters mls-disk-format stats)))
 
 (defun mls-disk-fetch ()
   "Returns a bunch of disk stats in a form of an alist."

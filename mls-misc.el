@@ -87,6 +87,7 @@
 %T - Current time according to `format-time-string' called with `mls-misc-time-format'.
 %D - Like %T, separated for convinience.")
 
+(defvar mls-misc-data nil)
 (defvar mls-misc-mode-line-string "")
 (defvar mls-misc-timer nil)
 (defvar mls-misc-formatters nil)
@@ -107,9 +108,10 @@
 
 (defun mls-misc-update ()
   "Update stats."
-  (setq mls-misc-mode-line-string (mls-misc-stats))
   (force-mode-line-update)
   (sit-for 0))
+  (setq mls-misc-data (mls-misc-stats))
+  (setq mls-misc-mode-line-string (mls-data-to-string mls-misc-data))
 
 (defun mls-misc-start ()
   "Start displaying misc stats in the mode-line."
@@ -136,7 +138,7 @@
          (system-uptime (format-seconds mls-misc-system-uptime-format
                                         (- (float-time (current-time))
                                            boot-time))))
-    (mls-format-expand mls-misc-formatters
+    (mls-format-expand-list mls-misc-formatters
                    mls-misc-format
                    (list load boot-time emacs-uptime system-uptime))))
 

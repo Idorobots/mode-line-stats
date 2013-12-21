@@ -38,6 +38,7 @@
 
 (defvar mls-sensors-formatters nil)
 (defvar mls-sensors-timer nil)
+(defvar mls-sensors-data nil)
 (defvar mls-sensors-mode-line-string "")
 (defvar mls-sensors-command "sensors")
 (defvar mls-sensors-patterns
@@ -71,9 +72,10 @@ Second value is the `sensors` label.")
 
 (defun mls-sensors-update ()
   "Update stats."
-  (setq mls-sensors-mode-line-string (mls-sensors-stats))
   (force-mode-line-update)
   (sit-for 0))
+  (setq mls-sensors-data (mls-sensors-stats))
+  (setq mls-sensors-mode-line-string (mls-data-to-string mls-sensors-data))
 
 (defun mls-sensors-start ()
   "Start displaying sensors usage stats in the mode-line."
@@ -94,7 +96,7 @@ Second value is the `sensors` label.")
 (defun mls-sensors-stats ()
   "Build the stats."
   (let ((stats (mls-sensors-fetch)))
-    (mls-format-expand mls-sensors-formatters mls-sensors-format stats)))
+    (mls-format-expand-list mls-sensors-formatters mls-sensors-format stats)))
 
 (defun mls-sensors-fetch ()
   "Return a bunch of sensors stats in a form of an alist."

@@ -57,6 +57,7 @@
 
 (defvar mls-memory-formatters nil)
 (defvar mls-memory-timer nil)
+(defvar mls-memory-data nil)
 (defvar mls-memory-mode-line-string "")
 
 (defvar mls-memory-settings
@@ -102,9 +103,10 @@
 
 (defun mls-memory-update ()
   "Update stats."
-  (setq mls-memory-mode-line-string (mls-memory-stats))
   (force-mode-line-update)
   (sit-for 0))
+  (setq mls-memory-data (mls-memory-stats))
+  (setq mls-memory-mode-line-string (mls-data-to-string mls-memory-data))
 
 (defun mls-memory-start ()
   "Start displaying memory usage stats in the mode-line."
@@ -123,7 +125,7 @@
 (defun mls-memory-stats ()
   "Build stats."
   (let ((stats (mls-memory-fetch)))
-    (mls-format-expand mls-memory-formatters mls-memory-format stats)))
+    (mls-format-expand-list mls-memory-formatters mls-memory-format stats)))
 
 (defun mls-memory-fetch ()
   "Returns a bunch of memory stats in a form of an alist."
