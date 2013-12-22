@@ -164,6 +164,9 @@ Available values are :left, :right, :header-line and
 (defvar mls-pretty-string-func 'mls-pretty-string-handler
   "Function to prettify string value.")
 
+(defvar mls-pretty-percent-width 30
+  "Percent graph width.")
+
 (defvar mls-monitor-hook nil
   "Hook to run after the monitor format is processed.
 The hook function will receive the params corresponding to
@@ -297,7 +300,7 @@ it will return the face of the current level."
 
 (defun mls-pretty-percent-handler (value)
   "Prettify percent VALUE."
-  (let* ((width 30)
+  (let* ((width mls-pretty-percent-width)
          (x (/ (* width value) 100)))
     (concat "["
             (make-string x ?|)
