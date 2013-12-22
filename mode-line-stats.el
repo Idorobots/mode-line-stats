@@ -254,9 +254,9 @@ contains the VALUE instead of only the VALUE."
       (setq current-value (car item))
       (setq current-level (cadr item))
       (setq found (cond
-                   ((numberp current-value)
+                   ((and (numberp value) (numberp current-value))
                     (when (>= value current-value) current-level))
-                   ((stringp current-value)
+                   ((and (stringp value) (stringp current-value))
                     (when (string= value current-value) current-level))))
       (setq items (cdr items)))
     found))
