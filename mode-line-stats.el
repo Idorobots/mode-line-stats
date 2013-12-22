@@ -152,6 +152,18 @@
 Available values are :left, :right, :header-line and
 :global-mode-string.")
 
+(defvar mls-pretty-float-func 'mls-pretty-float-handler
+  "Function to prettify float value.")
+
+(defvar mls-pretty-percent-func 'mls-pretty-percent-handler
+  "Function to prettify percent value.")
+
+(defvar mls-pretty-integer-func 'mls-pretty-integer-handler
+  "Function to prettify integer value.")
+
+(defvar mls-pretty-string-func 'mls-pretty-string-handler
+  "Function to prettify string value.")
+
 (defvar mls-monitor-hook nil
   "Hook to run after the monitor format is processed.
 The hook function will receive the params corresponding to
@@ -283,8 +295,8 @@ it will return the face of the current level."
         ((or (stringp value) (numberp value))
          value)))
 
-(defun mls-pretty-percent (value)
-  "Return an ascii graph given a percent VALUE."
+(defun mls-pretty-percent-handler (value)
+  "Prettify percent VALUE."
   (let* ((width 30)
          (x (/ (* width value) 100)))
     (concat "["
@@ -293,35 +305,40 @@ it will return the face of the current level."
             "] "
             (format "%d" value))))
 
-(defun mls-pretty-handler (value levels hide-value-p module-fmt-type &optional comment)
-  "Propertize the VALUE according to the current level.
-LEVELS list of levels.
-HIDE-VALUE-P flag to hide the value when displaying.
-MODULE-FMT-TYPE type of the format, usually :primary or :buffer.
-COMMENT additional text to be propertized and displayed."
+(defun mls-pretty-float-handler (value)
+  "Prettify float VALUE."
+  (format "%.2f" value))
 
-  (let ((value (mls-normalize-value value))
-        (text-to-show nil)
-        (value-fmt nil)
-        (color nil))
+(defun mls-pretty-integer-handler (value)
+  "Prettify integer VALUE."
+  (format "%d" value))
+
+(defun mls-pretty-string-handler (value)
+  "Prettify string VALUE."
+  (format "%s" value))
+
+(defun mls-pretty-value (value face hide-value-p &optional comment)
+  "Propertize the VALUE according to the current level.
+FACE is the current level face.
+HIDE-VALUE-P flag to hide the value when displaying.
+COMMENT additional text to be propertized and displayed."
+  (let ((text-to-show nil))
 
     (if value
         (progn
-          (setq color (mls-get-face levels value module-fmt-type))
-
           (unless hide-value-p
-            (cond ((floatp value)
-                   (setq text-to-show (format "%.2f" value)))
-                  ((and (numberp value) (equal comment "%"))
-                   (setq text-to-show (mls-pretty-percent value)))
-                  ((numberp value)
-                   (setq text-to-show (format "%d" value)))
-                  ((stringp value)
-                   (setq text-to-show (format "%s" value)))))
+            (setq text-to-show (cond ((floatp value)
+                                      (funcall mls-pretty-float-func value))
+                                     ((and (numberp value) (equal comment "%"))
+                                      (funcall mls-pretty-percent-func value))
+                                     ((numberp value)
+                                      (funcall mls-pretty-integer-func value))
+                                     ((stringp value)
+                                      (funcall mls-pretty-string-func value)))))
 
           (setq text-to-show (concat text-to-show comment))
 
-          (propertize text-to-show 'face color))
+          (propertize text-to-show 'face face))
       mls-no-data-string)))
 
 (defun mls-hidden-formatter-p (fmt)
@@ -372,12 +389,9 @@ MODULE-ALIST is an alist of settings."
 
 (defun mls-find-formatter-position (formatter list)
   "Find the position of the FORMATTER in the LIST."
-  (let ((total 0)
-        (remain 0)
-        (items nil))
-    (setq total (length list))
-    (setq items (member formatter list))
-    (setq remain (length items))
+  (let* ((total (length list))
+         (items (member formatter list))
+         (remain (length items)))
     (when items
       (- total remain))))
 
@@ -385,15 +399,13 @@ MODULE-ALIST is an alist of settings."
   "Return the current level name of the hook formatter.
 MODULE-ALIST is an alist of setttings.
 VALUES is a list of values."
-  (let ((output-fmt (mls-get-setting module-alist (list :formats :monitor)))
-        (formatters (mls-get-formatters module-alist t))
-        (levels nil)
-        (item nil)
-        (value nil)
-        (item-fmt nil)
-        (index nil))
-
-    (setq item (car (mls-parse-format output-fmt)))
+  (let* ((output-fmt (mls-get-setting module-alist (list :formats :monitor)))
+         (formatters (mls-get-formatters module-alist t))
+         (levels nil)
+         (item (car (mls-parse-format output-fmt)))
+         (value nil)
+         (item-fmt nil)
+         (index nil))
 
     (when item
       (setq item-fmt (mls-normalize-formatter (car item)))
@@ -408,21 +420,21 @@ VALUES is a list of values."
 MODULE-ALIST is an alist of settings.
 VALUES is a list of values.
 MODULE-FMT-TYPE is the format type, usually :primary or :buffer."
-  (let ((output-fmt (mls-get-setting module-alist (list :formats module-fmt-type)))
-        (formatters (mls-get-formatters module-alist t))
-        (current-formatters nil)
-        (levels nil)
-        (item nil)
-        (item-fmt nil)
-        (item-fmt-sane nil)
-        (hide-value-p nil)
-        (comment nil)
-        (regexp nil)
-        (index nil))
+  (let* ((output-fmt (mls-get-setting module-alist (list :formats module-fmt-type)))
+         (formatters (mls-get-formatters module-alist t))
+         (current-formatters (mls-parse-format output-fmt))
+         (levels nil)
+         (item nil)
+         (item-fmt nil)
+         (item-fmt-sane nil)
+         (comment nil)
+         (regexp nil)
+         (value nil)
+         (face nil)
+         (hide-value-p nil)
+         (index nil))
 
-    (setq current-formatters (mls-parse-format output-fmt))
-
-    (while (setq item (car current-formatters))
+    (dolist (item current-formatters)
       (setq item-fmt (car item))
       (setq item-fmt-sane (mls-normalize-formatter item-fmt))
       (setq hide-value-p (mls-hidden-formatter-p item-fmt))
@@ -432,14 +444,14 @@ MODULE-FMT-TYPE is the format type, usually :primary or :buffer."
 
       (setq index (mls-find-formatter-position item-fmt-sane formatters))
       (setq levels (mls-get-setting module-alist (list :levels item-fmt-sane)))
+      (setq value (mls-normalize-value (nth index values)))
+      (setq face (mls-get-face levels value module-fmt-type))
       (setq output-fmt (replace-regexp-in-string regexp
-                                                 (mls-pretty-value (nth index values)
-                                                                       levels
-                                                                       hide-value-p
-                                                                       module-fmt-type
-                                                                       comment)
-                                                 output-fmt))
-      (setq current-formatters (cdr current-formatters)))
+                                                 (mls-pretty-value value
+                                                                   face
+                                                                   hide-value-p
+                                                                   comment)
+                                                 output-fmt)))
     output-fmt))
 
 (defun mls-run-hook (module-name module-alist module-fmt-type values)
@@ -457,7 +469,9 @@ VALUES: a list of values used to get the current level"
 
 (defun mls-module-valid-p (module-name)
   "Return t if MODULE-NAME is a valid module, nil otherwise."
-  (let ((module-sym (if (stringp module-name) (intern module-name) module-name)))
+  (let ((module-sym (if (stringp module-name)
+                        (intern module-name)
+                      module-name)))
     (member module-sym mls-modules-available)))
 
 (defun mls-module-enabled-p (module-name)
@@ -639,7 +653,7 @@ will return 'header-line-format."
   "Keymap for mode-line-stats mode.")
 
 (defun mls-keymap-setup ()
-  "Init the keymap"
+  "Init the keymap."
 ;; key bindings
   (define-key mode-line-stats-mode-map mls-toggle-key 'mls-mode-line-toggle))
 
