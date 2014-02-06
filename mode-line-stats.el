@@ -180,37 +180,37 @@ The values of MODULE-ALIST can be changed inside the hook
 but it will be restored after that.")
 
 (defface mls-norm-primary-face
-  '((((class color) (background dark))
+  '((((class color))
      :background "#b6bd68" :foreground "#1d1f21"))
   "Normal face used in primary mode-line."
   :group 'mode-line-stats)
 
 (defface mls-warn-primary-face
-  '((((class color) (background dark))
+  '((((class color))
      :background "#de935f" :foreground "#1d1f21"))
   "Warning face used in primary mode-line."
   :group 'mode-line-stats)
 
 (defface mls-crit-primary-face
-  '((((class color) (background dark))
+  '((((class color))
      :background "#cc6666" :foreground "#1d1f21"))
   "Critical face used in primary mode-line."
   :group 'mode-line-stats)
 
 (defface mls-norm-buffer-face
-  '((((class color) (background dark))
+  '((((class color))
      :foreground "#b6bd68"))
   "Normal face used in buffer mode-line."
   :group 'mode-line-stats)
 
 (defface mls-warn-buffer-face
-  '((((class color) (background dark))
+  '((((class color))
      :foreground "#de935f"))
   "Warning face used in buffer mode-line."
   :group 'mode-line-stats)
 
 (defface mls-crit-buffer-face
-  '((((class color) (background dark))
+  '((((class color))
      :foreground "#cc6666"))
   "Critical face used in buffer mode-line."
   :group 'mode-line-stats)
