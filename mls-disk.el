@@ -42,23 +42,23 @@
 (require 'mls-common)
 
 (defvar mls-disk-formatters nil)
-(defvar mls-disk-device nil)
+(defvar mls-disk-devices nil)
 (defvar mls-disk-timer nil)
 (defvar mls-disk-data nil)
 (defvar mls-disk-mode-line-string "")
 
 (defvar mls-disk-settings
   '((:formats
-     ((:primary "&p{d}")
+     ((:primary "&/dev/sda1_p{d}")
       (:buffer "
-    Used:  %p{%}
-    Free:  %fG{GB}
-    Total: %tG{GB}")
-      (:monitor "&p")))
+    Used:  %/dev/sda1_p{%}
+    Free:  %/dev/sda1_fG{GB}
+    Total: %/dev/sda1_tG{GB}")
+      (:monitor "&/dev/sda1_p")))
     (:levels
-     (("%p" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm"))))))
+     (("%/dev/sda1_p" ((90.0 "crit")
+                       (50.0 "warn")
+                       (0.0  "norm"))))))
   "DISK stats settings.")
 
 (defgroup mls-disk nil
@@ -70,12 +70,12 @@
   :type 'number
   :group 'mls-disk)
 
-(defcustom mls-disk-format "%p"
+(defcustom mls-disk-format "%/dev/sda1_p"
   "Format string:
 %p - Percentile used DISK space.
-%u# - Used space (where # is the unit: M, G or T). Default in KB.
-%f# - Free space (where # is the unit: M, G or T). Default in KB.
-%t# - Total space (where # is the unit: M, G or T). Default in KB."
+%u# - Used space (where # is the unit: K, M, G or T).
+%f# - Free space (where # is the unit: K, M, G or T).
+%t# - Total space (where # is the unit: K, M, G or T)."
   :type 'string
   :group 'mls-disk)
 
@@ -88,8 +88,11 @@
 (defun mls-disk-start ()
   "Start displaying disk usage stats in the mode-line."
   (interactive)
-  (unless mls-disk-device
-    (setq mls-disk-device (caar (mls-disk-fetch))))
+
+  (unless mls-disk-devices
+    (setq mls-disk-devices (list (caar (mls-disk-fetch)))))
+
+  (mls-disk-formatters-init)
 
   (setq mls-disk-mode-line-string "")
   (mls-set-timer 'mls-disk-timer
@@ -126,33 +129,36 @@
         ((equal unit 'T) (/ value 1073741824.0))
         (t value)))
 
-(defun mls-disk-build-formatter (formatter index &optional unit)
+(defun mls-disk-build-formatter (device formatter index &optional unit)
   "Builds a `mls-disk` FORMATTER with VALUE."
-  (cons (concat formatter (when unit (symbol-name unit)))
-                      `(lambda (stats)
-                        (number-to-string
-                         (mls-disk-normalize-value
-                          (nth ,index (assoc mls-disk-device stats))
-                          ',unit)))))
+  (cons (concat device "_" formatter (when unit (symbol-name unit)))
+        `(lambda (stats)
+           (number-to-string
+            (mls-disk-normalize-value
+             (nth ,index (assoc ,device stats))
+             ',unit)))))
 
-(setq mls-disk-formatters
-  (list
-   (mls-disk-build-formatter "p" 4)
+(defun mls-disk-formatters-init ()
+  "Initialize the formatters."
+  (setq mls-disk-formatters nil)
+  (mapc #'(lambda (device)
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "p" 4))
 
-   (mls-disk-build-formatter "u" 2 'M)
-   (mls-disk-build-formatter "u" 2 'G)
-   (mls-disk-build-formatter "u" 2 'T)
-   (mls-disk-build-formatter "u" 2)
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'M))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'G))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'T))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'K))
 
-   (mls-disk-build-formatter "f" 3 'M)
-   (mls-disk-build-formatter "f" 3 'G)
-   (mls-disk-build-formatter "f" 3 'T)
-   (mls-disk-build-formatter "f" 3)
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'M))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'G))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'T))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'K))
 
-   (mls-disk-build-formatter "t" 1 'M)
-   (mls-disk-build-formatter "t" 1 'G)
-   (mls-disk-build-formatter "t" 1 'T)
-   (mls-disk-build-formatter "t" 1)))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'M))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'G))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'T))
+            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'K)))
+        mls-disk-devices))
 
 (provide 'mls-disk)
 ;;; mls-disk ends here

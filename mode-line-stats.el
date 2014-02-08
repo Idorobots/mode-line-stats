@@ -137,8 +137,8 @@
 (defvar mls-toggle-key (kbd "C-º")
   "Keybinding to toggle primary/secondary mode-lines.")
 
-(defconst mls-format-regexp
-  "\\([\%\&][[:alpha:][:digit:]]+\\)\\(\{\\([^\}]+\\)?\}\\)?"
+(defvar mls-format-regexp
+  "\\([\%\&][^ \{]+\\)\\(\{\\([^\}]+\\)?\}\\)?"
   "Regexp to parse formatters in the format strings.")
 
 (defconst mls-modules-available '(battery cpu memory disk misc sensors)
