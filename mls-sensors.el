@@ -112,10 +112,11 @@ Second value is the `sensors` label.")
 
 (defun mls-sensors-formatters-init ()
   "Initialize the formatters."
-  (setq mls-sensors-format (mapconcat #'(lambda (pattern)
+  (unless mls-sensors-format
+    (setq mls-sensors-format (mapconcat #'(lambda (pattern)
                                             (concat "%" (car pattern)))
                                         mls-sensors-patterns
-                                        " "))
+                                        " ")))
   (setq mls-sensors-formatters
         (mapcar #'(lambda (pattern-list)
                     `(,(car pattern-list)
