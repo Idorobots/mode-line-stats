@@ -58,6 +58,9 @@ Second value is the `sensors` label.")
     (:levels
      (("%c0" ((60.0 "crit")
               (40.0 "warn")
+              (0.0  "norm")))
+      ("%c1" ((60.0 "crit")
+              (40.0 "warn")
               (0.0  "norm"))))))
   "SENSORS stats settings.")
 
