@@ -70,12 +70,12 @@
   :type 'string
   :group 'mls-cpu)
 
-(defcustom mls-cpu-mode-line "&C0{c}"
+(defcustom mls-cpu-mode-line-format "&C0{c}"
   "Mode line format."
   :type 'string
   :group 'mls-cpu)
 
-(defcustom mls-cpu-buffer "%C0{%}"
+(defcustom mls-cpu-buffer-format "%C0{%}"
   "Buffer format."
   :type 'string
   :group 'mls-cpu)
@@ -90,7 +90,7 @@
   :type 'string
   :group 'mls-cpu)
 
-(defcustom mls-cpu-monitor "&A"
+(defcustom mls-cpu-monitor-format "&A"
   "Monitor format."
   :type 'string
   :type 'mls-cpu)
@@ -203,10 +203,10 @@ MODULE is passed as argument when called from `mls-module-call'."
     (mls-module-update)))
 
 (mls-module-define `(:name ,mls-cpu-name
-                     :mode-line ,mls-cpu-mode-line
-                     :buffer ,mls-cpu-buffer
+                     :mode-line-format ,mls-cpu-mode-line-format
+                     :buffer-format ,mls-cpu-buffer-format
                      :format ,mls-cpu-format
-                     :monitor ,mls-cpu-monitor
+                     :monitor-format ,mls-cpu-monitor-format
                      :levels  ,mls-cpu-levels
                      :interval ,mls-cpu-update-interval
                      :timer nil

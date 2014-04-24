@@ -145,7 +145,7 @@
 (defvar mls-modules '(cpu)
   "Modules enabled.")
 
-(defvar mls-format-keys '(:mode-line :buffer :monitor))
+(defvar mls-format-keys '(:mode-line-format :buffer-format :monitor-format))
 
 (defvar mls-position :left
   "Set the position of mls.
@@ -260,7 +260,7 @@ Given a MODULE, FMT, VALUE and the FMT-TYPE
 it will return the face of the current level."
   (let ((level (mls-get-level module fmt value)))
     (when level
-      (if (eq fmt-type :mode-line)
+      (if (eq fmt-type :mode-line-format)
           (format "mls-%s-primary-face" level)
         (format "mls-%s-buffer-face" level)))))
 
@@ -373,7 +373,7 @@ If NORMALIZEP is nil it will use custom formatters."
   "Return the current level name of the hook formatter.
 MODULE is a module plist.
 VALUES is a list of data values."
-  (let* ((output-fmt (mls-module-get module :monitor))
+  (let* ((output-fmt (mls-module-get module :monitor-format))
          (formatters (mls-get-active-formatters module t))
          (fmt-info (car (mls-get-format-info output-fmt)))
          (value nil)
@@ -391,7 +391,7 @@ VALUES is a list of data values."
   "Process the module and return the string to be displayed in mode-line.
 MODULE is a plist.
 DATA is a list of values.
-FMT-TYPE is the format type, usually :mode-line or :buffer."
+FMT-TYPE is the format type, usually :mode-line-format or :buffer-format."
   (let* ((output-fmt (mls-module-get module fmt-type))
          (formatters-info (mls-get-format-info output-fmt))
          (active-formatters (mls-get-active-formatters module t))
@@ -418,11 +418,11 @@ FMT-TYPE is the format type, usually :mode-line or :buffer."
       (setq output-fmt (replace-regexp-in-string regexp value output-fmt)))
     output-fmt))
 
-(defun mls-run-hook (module fmt-type values)
+(defun mls-run-hook (module values fmt-type)
   "Run the hook with parameters.
-MODULE: module plist
-FMT-TYPE: format type
-VALUES: a list of data values used to get the current level"
+MODULE: module plist.
+VALUES: a list of data values used to get the current level.
+FMT-TYPE: format type."
   (run-hook-with-args 'mls-monitor-hook
                       (mls-module-get module :name)
                       (mls-get-current-monitor-level module values)
@@ -469,14 +469,14 @@ VALUES: a list of data values used to get the current level"
 (defun mls-display (module-name fmt-type)
   "Display the module in the mode-line.
 MODULE-NAME corresponds to module name.
-FMT-TYPE is the format type \(:mode-line or :buffer\)."
+FMT-TYPE is the format type \(:mode-line-format or :buffer-format\)."
   (when (mls-module-enabled-p module-name)
     (let* ((module-name (downcase module-name))
            (module (mls-module-get module-name))
            (module-backup (copy-tree module))
            (data (mls-module-get module-backup :data)))
 
-      (mls-run-hook module-backup fmt-type data)
+      (mls-run-hook module-backup data fmt-type)
       (mls-process module-backup data fmt-type))))
 
 (defun mls-get-position ()
@@ -542,7 +542,7 @@ will return 'header-line-format."
     (insert "\n")
     (dolist (module mls-modules)
       (insert (mls-buffer-module-title module))
-      (insert (mls-display (format "%s" module) :buffer))
+      (insert (mls-display (format "%s" module) :buffer-format))
       (insert "\n"))))
 
 (defun mls-mode-line-setup ()
@@ -560,7 +560,7 @@ will return 'header-line-format."
   (let ((mode-line-format-sym 'mls-format-primary)
         (modules (reverse mls-modules)))
     (dolist (module-sym modules)
-      (push `(:eval (mls-display ,(symbol-name module-sym) :mode-line))
+      (push `(:eval (mls-display ,(format "%s" module-sym) :mode-line-format))
             (symbol-value mode-line-format-sym)))))
 
 (defun mls-enable-mode-line ()
