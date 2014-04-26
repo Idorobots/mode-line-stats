@@ -51,30 +51,38 @@
 ;; Maybe add HDD usage.
 
 ;;; Code:
+(require 'mls-module)
 
-(require 'cl)
-(require 'mls-common)
+(defvar mls-memory-default-levels '((90.0  "crit")
+                                    (50.0  "warn")
+                                    (0.0   "norm")))
+(defcustom mls-memory-levels `(("%R"  ,mls-memory-default-levels)
+                               ("%%S" ,mls-memory-default-levels))
+  "Module levels."
+  :type 'sexp ;; FIXME: should write a better type here
+  :group 'mls-memory)
 
-(defvar mls-memory-formatters nil)
-(defvar mls-memory-timer nil)
-(defvar mls-memory-data nil)
-(defvar mls-memory-mode-line-string "")
+(defcustom mls-memory-name "memory"
+  "Module name."
+  :type 'string
+  :group 'mls-memory)
 
-(defvar mls-memory-settings
-  '((:formats
-     ((:primary "&R{m}")
-      (:buffer "
+(defcustom mls-memory-mode-line-format "&R{m}"
+  "Mode line format."
+  :type 'string
+  :group 'mls-memory)
+
+(defcustom mls-memory-buffer-format "
     RAM:  %R{%}
-    SWAP: %S{%}")
-      (:monitor "&R")))
-    (:levels
-     (("%R" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm")))
-      ("%S" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm"))))))
-  "MEMORY stats settings.")
+    SWAP: %S{%}"
+  "Buffer format."
+  :type 'string
+  :group 'mls-memory)
+
+(defcustom mls-memory-monitor-format "&R"
+  "Monitor format."
+  :type 'string
+  :type 'mls-memory)
 
 (defgroup mls-memory nil
   "Display various memory stats in the mode-line."
@@ -103,32 +111,30 @@
   :type 'string
   :group 'mls-memory)
 
-(defun mls-memory-update ()
+(defun mls-memory-update (module)
   "Update stats."
-  (setq mls-memory-data (mls-memory-stats))
-  (setq mls-memory-mode-line-string (mls-data-to-string mls-memory-data))
-  (mls-module-update))
+  (let* ((stats (mls-module-call module :fetch))
+         (data (mls-module-format-expand module stats)))
+    (mls-module-set module :data data)
+    (mls-module-set module :mode-line-string (mls-data-to-string data))
+    (mls-module-update)))
 
-(defun mls-memory-start ()
+(defun mls-memory-start (module)
   "Start displaying memory usage stats in the mode-line."
   (interactive)
-  (setq mls-memory-mode-line-string "")
-  (mls-set-timer 'mls-memory-timer
-                 mls-memory-update-interval
-                 'mls-memory-update))
+  (let ((interval (mls-module-get module :interval)))
+    (mls-module-set module :mode-line-string "")
+    (mls-module-set-timer module
+                          interval
+                          `(lambda() (mls-module-call ',module :update)))))
 
-(defun mls-memory-stop ()
+(defun mls-memory-stop (module)
   "Stop displaying memory usage stats in the mode-line."
   (interactive)
-  (setq mls-memory-mode-line-string "")
-  (mls-cancel-timer 'mls-memory-timer))
+  (mls-module-set module :mode-line-string "")
+  (mls-module-cancel-timer module))
 
-(defun mls-memory-stats ()
-  "Build stats."
-  (let ((stats (mls-memory-fetch)))
-    (mls-format-expand-list mls-memory-formatters mls-memory-format stats)))
-
-(defun mls-memory-fetch ()
+(defun mls-memory-fetch (&optional module)
   "Returns a bunch of memory stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -140,7 +146,8 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq mls-memory-formatters
+(defun mls-memory-formatters-init ()
+  "Build memory formatters."
   (list
     ; Percentile RAM usage.
     (cons "r" (lambda (stats)
@@ -203,6 +210,23 @@
                        (used (nth 2 swap)))
                   (format "%.0f" (* 100 (/ (float used)
                                            total))))))))
+
+
+(mls-module-define `(:name ,mls-memory-name
+                     :mode-line-format ,mls-memory-mode-line-format
+                     :buffer-format ,mls-memory-buffer-format
+                     :format ,mls-memory-format
+                     :monitor-format ,mls-memory-monitor-format
+                     :levels  ,mls-memory-levels
+                     :interval ,mls-memory-update-interval
+                     :timer nil
+                     :data nil
+                     :mode-line-string ""
+                     :formatters ,(mls-memory-formatters-init)
+                     :update     mls-memory-update
+                     :fetch      mls-memory-fetch
+                     :start      mls-memory-start
+                     :stop       mls-memory-stop))
 
 (provide 'mls-memory)
 ;;; mls-memory.el ends here

@@ -34,27 +34,37 @@
 ;;; Commentary:
 
 ;;; Code:
-
-(require 'cl)
-(require 'mls-common)
-
-(defvar mls-battery-formatters nil)
-(defvar mls-battery-timer nil)
-(defvar mls-battery-data nil)
-(defvar mls-battery-mode-line-string "")
+(require 'mls-module)
 
 (defvar mls-battery-battery-format "%c %r %B %d %L %p %m %h %t")
 
-(defvar mls-battery-settings
-  '((:formats
-     ((:primary "&p{b}")
-      (:secondary " BAT[%p{%%}]")
-      (:monitor "&p")))
-    (:levels
-     (("%p" ((75.0 "norm")
-             (35.0 "warn")
-             (0.0  "crit"))))))
-  "BATTERY stats settings.")
+(defvar mls-battery-default-levels '((75.0 "norm")
+                                     (35.0 "warn")
+                                     (0.0  "crit")))
+(defcustom mls-battery-levels `(("%p"  ,mls-battery-default-levels))
+  "Module levels."
+  :type 'sexp ;; FIXME: should write a better type here
+  :group 'mls-battery)
+
+(defcustom mls-battery-name "battery"
+  "Module name."
+  :type 'string
+  :group 'mls-battery)
+
+(defcustom mls-battery-mode-line-format "&p{b}"
+  "Mode line format."
+  :type 'string
+  :group 'mls-battery)
+
+(defcustom mls-battery-buffer-format " BAT[%p{%%}]"
+  "Buffer format."
+  :type 'string
+  :group 'mls-battery)
+
+(defcustom mls-battery-monitor-format "&p"
+  "Monitor format."
+  :type 'string
+  :type 'mls-battery)
 
 (defgroup mls-battery nil
   "Display various disk stats in the mode-line."
@@ -82,40 +92,37 @@
   :type 'string
   :group 'mls-battery)
 
-(defun mls-battery-update ()
+(defun mls-battery-update (module)
   "Update stats."
-  (setq mls-battery-data (mls-battery-stats))
-  (setq mls-battery-mode-line-string (mls-data-to-string mls-battery-data))
-  (mls-module-update))
+  (let* ((stats (mls-module-call module :fetch))
+         (data (mls-module-format-expand module stats)))
+    (mls-module-set module :data data)
+    (mls-module-set module :mode-line-string (mls-data-to-string data))
+    (mls-module-update)))
 
-(defun mls-battery-start ()
-  "Start displaying disk usage stats in the mode-line."
+(defun mls-battery-start (module)
+  "Start displaying battery usage stats in the mode-line."
   (interactive)
 
-  (setq battery-mode-line-format mls-battery-battery-format)
-  (display-battery-mode)
-  (setq global-mode-string (delq 'battery-mode-line-string
-                                 global-mode-string))
+  (let ((interval (mls-module-get module :interval)))
+    (mls-module-set module :mode-line-string "")
+    (setq battery-mode-line-format mls-battery-battery-format)
+    (display-battery-mode)
+    (setq global-mode-string (delq 'battery-mode-line-string
+                                   global-mode-string))
+    (mls-module-set-timer module
+                          interval
+                          `(lambda() (mls-module-call ',module :update)))))
 
-  (setq mls-battery-mode-line-string "")
-  (mls-set-timer 'mls-battery-timer
-                 mls-battery-update-interval
-                 'mls-battery-update))
-
-(defun mls-battery-stop ()
-  "Stop displaying disk usage stats in the mode-line."
+(defun mls-battery-stop (module)
+  "Stop displaying battery usage stats in the mode-line."
   (interactive)
-  (setq mls-battery-mode-line-string "")
-  (mls-cancel-timer 'mls-battery-timer)
+  (mls-module-set module :mode-line-string "")
+  (mls-module-cancel-timer module)
   (display-battery-mode -1))
 
-(defun mls-battery-stats ()
-  "Build stats."
-  (let ((stats (mls-battery-fetch)))
-    (mls-format-expand-list mls-battery-formatters mls-battery-format stats)))
-
-(defun mls-battery-fetch ()
-  "Return a bunch of disk stats in a form of an alist."
+(defun mls-battery-fetch (&optional module)
+  "Return a bunch of battery stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                        (split-string (substring-no-properties battery-mode-line-string) " "))))
     (mapcar (lambda (lst)
@@ -123,7 +130,8 @@
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
-(setq mls-battery-formatters
+(defun mls-battery-formatters-init ()
+  "Build battery formatters."
   (list
     (cons "c" (lambda (stats)
                 (car (nth 0 stats))))
@@ -143,6 +151,22 @@
                 (car (nth 8 stats))))
     (cons "t" (lambda (stats)
                 (car (nth 9 stats))))))
+
+(mls-module-define `(:name ,mls-battery-name
+                     :mode-line-format ,mls-battery-mode-line-format
+                     :buffer-format ,mls-battery-buffer-format
+                     :format ,mls-battery-format
+                     :monitor-format ,mls-battery-monitor-format
+                     :levels  ,mls-battery-levels
+                     :interval ,mls-battery-update-interval
+                     :timer nil
+                     :data nil
+                     :mode-line-string ""
+                     :formatters ,(mls-battery-formatters-init)
+                     :update     mls-battery-update
+                     :fetch      mls-battery-fetch
+                     :start      mls-battery-start
+                     :stop       mls-battery-stop))
 
 (provide 'mls-battery)
 ;;; mls-battery.el ends here
