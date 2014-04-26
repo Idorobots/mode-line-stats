@@ -103,7 +103,7 @@ MODULE is passed as argument when called from `mls-module-call'."
                                  (string-prefix-p "cpu" (car line)))
                                (mls-cpu-read-stats)))
          (previous-stats (mls-module-get module :previous-stats))
-         (stats (mls-mapcar*
+         (stats (mls-module-mapcar*
                         (lambda (cpu prev-cpu)
                           (let* ((norm-user (nth 1 cpu))
                                  (nice-user (nth 2 cpu))
