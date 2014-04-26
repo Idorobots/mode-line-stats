@@ -111,29 +111,6 @@
   :type 'string
   :group 'mls-memory)
 
-(defun mls-memory-update (module)
-  "Update stats."
-  (let* ((stats (mls-module-call module :fetch))
-         (data (mls-module-format-expand module stats)))
-    (mls-module-set module :data data)
-    (mls-module-set module :mode-line-string (mls-data-to-string data))
-    (mls-module-update)))
-
-(defun mls-memory-start (module)
-  "Start displaying memory usage stats in the mode-line."
-  (interactive)
-  (let ((interval (mls-module-get module :interval)))
-    (mls-module-set module :mode-line-string "")
-    (mls-module-set-timer module
-                          interval
-                          `(lambda() (mls-module-call ',module :update)))))
-
-(defun mls-memory-stop (module)
-  "Stop displaying memory usage stats in the mode-line."
-  (interactive)
-  (mls-module-set module :mode-line-string "")
-  (mls-module-cancel-timer module))
-
 (defun mls-memory-fetch (&optional module)
   "Returns a bunch of memory stats in a form of an alist."
   (let ((stats (mapcar #'split-string
@@ -223,10 +200,7 @@
                      :data nil
                      :mode-line-string ""
                      :formatters ,(mls-memory-formatters-init)
-                     :update     mls-memory-update
-                     :fetch      mls-memory-fetch
-                     :start      mls-memory-start
-                     :stop       mls-memory-stop))
+                     :fetch      mls-memory-fetch))
 
 (provide 'mls-memory)
 ;;; mls-memory.el ends here

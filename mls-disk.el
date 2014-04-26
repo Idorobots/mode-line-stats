@@ -89,29 +89,6 @@
   :type 'string
   :group 'mls-disk)
 
-(defun mls-disk-update (module)
-  "Update stats."
-  (let* ((stats (mls-module-call module :fetch))
-         (data (mls-module-format-expand module stats)))
-    (mls-module-set module :data data)
-    (mls-module-set module :mode-line-string (mls-data-to-string data))
-    (mls-module-update)))
-
-(defun mls-disk-start (module)
-  "Start displaying disk usage stats in the mode-line."
-  (interactive)
-
-  (mls-module-set module :mode-line-string "")
-  (mls-module-set-timer module
-                        (mls-module-get module :interval)
-                        `(lambda() (mls-module-call ',module :update))))
-
-(defun mls-disk-stop (module)
-  "Stop displaying disk usage stats in the mode-line."
-  (interactive)
-  (mls-module-set module :mode-line-string "")
-  (mls-module-cancel-timer module))
-
 (defun mls-disk-fetch (&optional module)
   "Returns a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
@@ -178,10 +155,7 @@
                      :data nil
                      :mode-line-string ""
                      :formatters ,(mls-disk-formatters-init)
-                     :update     mls-disk-update
-                     :fetch      mls-disk-fetch
-                     :start      mls-disk-start
-                     :stop       mls-disk-stop))
+                     :fetch      mls-disk-fetch))
 
 (provide 'mls-disk)
 ;;; mls-disk ends here

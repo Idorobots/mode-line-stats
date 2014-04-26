@@ -178,29 +178,10 @@ MODULE is passed as argument when called from `mls-module-call'."
     ; ...
 ))
 
-(defun mls-cpu-start (module)
+(defun mls-cpu-init (&optional module)
   "Start MODULE displaying CPU usage stats in the mode-line."
-  (let ((interval (mls-module-get module :interval)))
-    (mls-module-set module :mode-line-string "")
-    (mls-module-set module
-                    :previous-stats (mls-module-call module :read-stats))
-    (mls-module-set-timer module
-                          interval
-                          `(lambda() (mls-module-call ',module :update)))))
-
-(defun mls-cpu-stop (module)
-  "Stop MODULE displaying CPU usage stats in the mode-line."
-  (mls-module-set module :mode-line-string "")
-  (mls-module-cancel-timer module))
-
-(defun mls-cpu-update (module)
-  "Update stats.
-MODULE is passed as argument when called from `mls-module-call'."
-  (let* ((stats (mls-module-call module :fetch))
-         (data (mls-module-format-expand module stats)))
-    (mls-module-set module :data data)
-    (mls-module-set module :mode-line-string (mls-data-to-string data))
-    (mls-module-update)))
+  (mls-module-set module
+                  :previous-stats (mls-module-call module :read-stats)))
 
 (mls-module-define `(:name ,mls-cpu-name
                      :mode-line-format ,mls-cpu-mode-line-format
@@ -214,11 +195,9 @@ MODULE is passed as argument when called from `mls-module-call'."
                      :data nil
                      :mode-line-string ""
                      :formatters ,(mls-cpu-formatters-init)
-                     :update     mls-cpu-update
+                     :init       mls-cpu-init
                      :fetch      mls-cpu-fetch
-                     :read-stats mls-cpu-read-stats
-                     :start      mls-cpu-start
-                     :stop       mls-cpu-stop))
+                     :read-stats mls-cpu-read-stats))
 
 ;; (mls-module-call "cpu" :start)
 

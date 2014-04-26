@@ -78,15 +78,17 @@ If PROP is submitted it will return the module property."
   "Call the module NAME function ACTION."
   (let* ((module (mls-module~find name))
          (func (mls-module-get module action)))
-    (funcall func module)))
+    (when func
+      (funcall func module))))
 
 (defun mls-module-set-timer (module interval func)
   "Set MODULE timer with INTERVAL and FUNC."
   (mls-module-cancel-timer module)
-  (mls-module-set module
+  (when interval
+    (mls-module-set module
                   :timer (run-at-time interval
                                       interval
-                                      func)))
+                                      func))))
 
 (defun mls-module-cancel-timer (module)
   "Cancel MODULE timer."
@@ -99,6 +101,32 @@ If PROP is submitted it will return the module property."
   (let ((formatters (mls-module-get module :formatters))
         (fmt (mls-module-get module :format)))
     (mls-format-expand-list formatters fmt stats)))
+
+(defun mls-module-start (module)
+  "Start MODULE displaying CPU usage stats in the mode-line."
+  (let ((interval (mls-module-get module :interval)))
+    (mls-module-call module :init)
+    (mls-module-set module :mode-line-string "")
+    (when interval
+      (mls-module-set-timer module
+                          interval
+                          `(lambda() (mls-module-update ',module))))))
+
+(defun mls-module-stop (module)
+  "Stop MODULE displaying CPU usage stats in the mode-line."
+  (mls-module-set module :mode-line-string "")
+  (mls-module-cancel-timer module)
+  (mls-module-call module :cleanup))
+
+(defun mls-module-update (module)
+  "Update stats.
+MODULE is passed as argument when called from `mls-module-call'."
+  (let* ((stats (mls-module-call module :fetch))
+         (data (mls-module-format-expand module stats)))
+    (mls-module-set module :data data)
+    (mls-module-set module :mode-line-string (mls-data-to-string data))
+    (mls-module-refresh)))
+
 
 (provide 'mls-module)
 ;;; mls-module ends here

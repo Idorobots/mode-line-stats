@@ -86,29 +86,6 @@ Second value is the `sensors` label.")
 
 (defvar mls-sensors-format nil)
 
-(defun mls-sensors-update (module)
-  "Update stats."
-(let* ((stats (mls-module-call module :fetch))
-         (data (mls-module-format-expand module stats)))
-    (mls-module-set module :data data)
-    (mls-module-set module :mode-line-string (mls-data-to-string data))
-    (mls-module-update)))
-
-(defun mls-sensors-start (module)
-  "Start displaying sensors usage stats in the mode-line."
-  (interactive)
-  (let ((interval (mls-module-get module :interval)))
-    (mls-module-set module :mode-line-string "")
-    (mls-module-set-timer module
-                          interval
-                          `(lambda() (mls-module-call ',module :update)))))
-
-(defun mls-sensors-stop (module)
-  "Stop displaying sensors usage stats in the mode-line."
-  (interactive)
-  (mls-module-set module :mode-line-string "")
-  (mls-module-cancel-timer module))
-
 (defun mls-sensors-fetch (&optional module)
   "Return a bunch of sensors stats in a form of an alist."
   (let ((stats (mapcar #'(lambda (s) (split-string s ":"))
@@ -146,10 +123,7 @@ Second value is the `sensors` label.")
                      :data nil
                      :mode-line-string ""
                      :formatters ,(mls-sensors-formatters-init)
-                     :update     mls-sensors-update
-                     :fetch      mls-sensors-fetch
-                     :start      mls-sensors-start
-                     :stop       mls-sensors-stop))
+                     :fetch      mls-sensors-fetch))
 
 (provide 'mls-sensors)
 ;;; mls-sensors ends here

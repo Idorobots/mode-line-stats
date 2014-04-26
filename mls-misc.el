@@ -115,29 +115,6 @@
   :type 'string
   :type 'mls-misc)
 
-(defun mls-misc-update (module)
-  "Update stats."
-  (let* ((stats (mls-module-call module :fetch))
-         (data (mls-module-format-expand module stats)))
-    (mls-module-set module :data data)
-    (mls-module-set module :mode-line-string (mls-data-to-string data))
-    (mls-module-update)))
-
-(defun mls-misc-start (module)
-  "Start displaying misc stats in the mode-line."
-  (interactive)
-  (let ((interval (mls-module-get module :interval)))
-    (mls-module-set module :mode-line-string "")
-    (mls-module-set-timer module
-                          interval
-                          `(lambda() (mls-module-call ',module :update)))))
-
-(defun mls-misc-stop (module)
-  "Stop displaying misc system stats in the mode-line."
-  (interactive)
-  (mls-module-set module :mode-line-string "")
-  (mls-module-cancel-timer module))
-
 (defun mls-misc-fetch (&optional module)
   (let* ((load (map 'list
                     (lambda (x) (/ x 100.0))
@@ -190,10 +167,7 @@
                      :data nil
                      :mode-line-string ""
                      :formatters ,(mls-misc-formatters-init)
-                     :update     mls-misc-update
-                     :fetch      mls-misc-fetch
-                     :start      mls-misc-start
-                     :stop       mls-misc-stop))
+                     :fetch      mls-misc-fetch))
 
 (provide 'mls-misc)
 ;;; mls-misc.el ends here

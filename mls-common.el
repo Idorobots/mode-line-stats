@@ -60,12 +60,11 @@ Return a list."
   (set module-timer (run-at-time module-interval
                                  module-interval
                                  module-function)))
-
-(defun mls-module-update ()
+(defun mls-module-refresh ()
   "Module update."
   (interactive)
-  (when (fboundp 'mls-buffer-update)
-    (mls-buffer-update))
+  (when (fboundp 'mls-buffer-refresh)
+    (mls-buffer-refresh))
   (force-mode-line-update)
   (sit-for 0))
 

@@ -446,7 +446,7 @@ FMT-TYPE: format type."
 (defun mls-disable-module (module-name)
   "Disable the module MODULE-NAME."
   (when (mls-module-enabled-p module-name)
-    (mls-module-call module-name :stop)
+    (mls-module-stop module-name)
     (mls-module-set module-name :running nil)))
 
 (defun mls-enable-module (module-name)
@@ -463,7 +463,7 @@ FMT-TYPE: format type."
                                      (mls-get-active-formatters module-name t)
                                      " "))
       (mls-module-set module-name :format module-format)
-      (mls-module-call module-name :start)
+      (mls-module-start module-name)
       (mls-module-set module-name :running t))))
 
 (defun mls-display (module-name fmt-type)
@@ -533,8 +533,8 @@ will return 'header-line-format."
                         module-name)
                 'face font-lock-type-face)))
 
-(defun mls-buffer-update ()
-  "Update mls buffer."
+(defun mls-buffer-refresh ()
+  "Refresh mls buffer."
   (interactive)
   (with-current-buffer mls-buffer
     (erase-buffer)

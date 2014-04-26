@@ -92,33 +92,17 @@
   :type 'string
   :group 'mls-battery)
 
-(defun mls-battery-update (module)
-  "Update stats."
-  (let* ((stats (mls-module-call module :fetch))
-         (data (mls-module-format-expand module stats)))
-    (mls-module-set module :data data)
-    (mls-module-set module :mode-line-string (mls-data-to-string data))
-    (mls-module-update)))
-
-(defun mls-battery-start (module)
-  "Start displaying battery usage stats in the mode-line."
+(defun mls-battery-init (&optional module)
+  "Init battery stats."
   (interactive)
+  (setq battery-mode-line-format mls-battery-battery-format)
+  (display-battery-mode)
+  (setq global-mode-string (delq 'battery-mode-line-string
+                                 global-mode-string)))
 
-  (let ((interval (mls-module-get module :interval)))
-    (mls-module-set module :mode-line-string "")
-    (setq battery-mode-line-format mls-battery-battery-format)
-    (display-battery-mode)
-    (setq global-mode-string (delq 'battery-mode-line-string
-                                   global-mode-string))
-    (mls-module-set-timer module
-                          interval
-                          `(lambda() (mls-module-call ',module :update)))))
-
-(defun mls-battery-stop (module)
-  "Stop displaying battery usage stats in the mode-line."
+(defun mls-battery-cleanup (&optional module)
+  "Cleanup battery stats."
   (interactive)
-  (mls-module-set module :mode-line-string "")
-  (mls-module-cancel-timer module)
   (display-battery-mode -1))
 
 (defun mls-battery-fetch (&optional module)
@@ -163,10 +147,9 @@
                      :data nil
                      :mode-line-string ""
                      :formatters ,(mls-battery-formatters-init)
-                     :update     mls-battery-update
-                     :fetch      mls-battery-fetch
-                     :start      mls-battery-start
-                     :stop       mls-battery-stop))
+                     :fetch mls-battery-fetch
+                     :init mls-battery-init
+                     :cleanup mls-battery-cleanup))
 
 (provide 'mls-battery)
 ;;; mls-battery.el ends here
