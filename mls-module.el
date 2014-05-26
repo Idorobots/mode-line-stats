@@ -69,7 +69,7 @@ If PROP is submitted it will return the module property."
          (new-module `(,name ,data))
          (module (mls-module-get name)))
     (when (mls-module~valid-p data)
-      (cond (module (setf (cadr module) data))
+      (cond (module (setf module data))
             (t (add-to-list 'mls-module-list new-module)))
       new-module)))
 
