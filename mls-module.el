@@ -102,7 +102,7 @@ If PROP is submitted it will return the module property."
     (mls-module~format-expand formatters fmt stats)))
 
 (defun mls-module-start (module)
-  "Start MODULE displaying CPU usage stats in the mode-line."
+  "Start MODULE."
   (let ((interval (mls-module-get module :interval)))
     (mls-module-call module :init)
     (mls-module-set module :mode-line-string "")
@@ -112,7 +112,7 @@ If PROP is submitted it will return the module property."
                           `(lambda() (mls-module-update ',module))))))
 
 (defun mls-module-stop (module)
-  "Stop MODULE displaying CPU usage stats in the mode-line."
+  "Stop MODULE."
   (mls-module-set module :mode-line-string "")
   (mls-module-cancel-timer module)
   (mls-module-call module :cleanup))
