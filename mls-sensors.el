@@ -34,12 +34,8 @@
 ;;; Commentary:
 
 ;;; Code:
-(require 'mls-common)
+(require 'mls-module)
 
-(defvar mls-sensors-formatters nil)
-(defvar mls-sensors-timer nil)
-(defvar mls-sensors-data nil)
-(defvar mls-sensors-mode-line-string "")
 (defvar mls-sensors-command "sensors")
 (defvar mls-sensors-patterns
   '(("c0" "Core 0")
@@ -48,21 +44,36 @@
 First value is the formatter.
 Second value is the `sensors` label.")
 
-(defvar mls-sensors-settings
-  '((:formats
-     ((:primary "&c0{t}")
-      (:buffer "
+(defvar mls-sensors-default-levels '((60.0 "crit")
+                                     (40.0 "warn")
+                                     (0.0  "norm")))
+(defcustom mls-sensors-levels `(("%c0"  ,mls-sensors-default-levels)
+                                ("%c1" ,mls-sensors-default-levels))
+  "Module levels."
+  :type 'sexp ;; FIXME: should write a better type here
+  :group 'mls-sensors)
+
+(defcustom mls-sensors-name "sensors"
+  "Module name."
+  :type 'string
+  :group 'mls-sensors)
+
+(defcustom mls-sensors-mode-line-format "&c0{t}"
+  "Mode line format."
+  :type 'string
+  :group 'mls-sensors)
+
+(defcustom mls-sensors-buffer-format "
     Cpu0 temp: %c0{ºC}
-    Cpu1 temp: %c1{ºC}")
-      (:monitor "&c0")))
-    (:levels
-     (("%c0" ((60.0 "crit")
-              (40.0 "warn")
-              (0.0  "norm")))
-      ("%c1" ((60.0 "crit")
-              (40.0 "warn")
-              (0.0  "norm"))))))
-  "SENSORS stats settings.")
+    Cpu1 temp: %c1{ºC}"
+  "Buffer format."
+  :type 'string
+  :group 'mls-sensors)
+
+(defcustom mls-sensors-monitor-format "&c0"
+  "Monitor format."
+  :type 'string
+  :type 'mls-sensors)
 
 (defgroup mls-sensors nil
   "Display various sensors stats in the mode-line."
@@ -75,34 +86,7 @@ Second value is the `sensors` label.")
 
 (defvar mls-sensors-format nil)
 
-(defun mls-sensors-update ()
-  "Update stats."
-  (setq mls-sensors-data (mls-sensors-stats))
-  (setq mls-sensors-mode-line-string (mls-data-to-string mls-sensors-data))
-  (mls-module-update))
-
-(defun mls-sensors-start ()
-  "Start displaying sensors usage stats in the mode-line."
-  (interactive)
-  (mls-sensors-formatters-init)
-
-  (setq mls-sensors-mode-line-string "")
-  (mls-set-timer 'mls-sensors-timer
-                 mls-sensors-update-interval
-                 'mls-sensors-update))
-
-(defun mls-sensors-stop ()
-  "Stop displaying sensors usage stats in the mode-line."
-  (interactive)
-  (setq mls-sensors-mode-line-string "")
-  (mls-cancel-timer 'mls-sensors-timer))
-
-(defun mls-sensors-stats ()
-  "Build the stats."
-  (let ((stats (mls-sensors-fetch)))
-    (mls-format-expand-list mls-sensors-formatters mls-sensors-format stats)))
-
-(defun mls-sensors-fetch ()
+(defun mls-sensors-fetch (&optional module)
   "Return a bunch of sensors stats in a form of an alist."
   (let ((stats (mapcar #'(lambda (s) (split-string s ":"))
                  (delete "" (split-string
@@ -113,19 +97,33 @@ Second value is the `sensors` label.")
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
 
+(defun mls-sensors-format-init ()
+  "Initialize the formatters."
+  (mapconcat #'(lambda (pattern)
+                 (concat "%" (car pattern)))
+             mls-sensors-patterns
+             " "))
+
 (defun mls-sensors-formatters-init ()
   "Initialize the formatters."
-  (unless mls-sensors-format
-    (setq mls-sensors-format (mapconcat #'(lambda (pattern)
-                                            (concat "%" (car pattern)))
-                                        mls-sensors-patterns
-                                        " ")))
-  (setq mls-sensors-formatters
-        (mapcar #'(lambda (pattern-list)
-                    `(,(car pattern-list)
-                           lambda (stats)
-                           (number-to-string (cadr (assoc ,(cadr pattern-list) stats)))))
-                mls-sensors-patterns)))
+  (mapcar #'(lambda (pattern-list)
+              `(,(car pattern-list)
+                lambda (stats)
+                (number-to-string (cadr (assoc ,(cadr pattern-list) stats)))))
+          mls-sensors-patterns))
+
+(mls-module-define `(:name ,mls-sensors-name
+                     :mode-line-format ,mls-sensors-mode-line-format
+                     :buffer-format ,mls-sensors-buffer-format
+                     :format ,(mls-sensors-format-init)
+                     :monitor-format ,mls-sensors-monitor-format
+                     :levels  ,mls-sensors-levels
+                     :interval ,mls-sensors-update-interval
+                     :timer nil
+                     :data nil
+                     :mode-line-string ""
+                     :formatters ,(mls-sensors-formatters-init)
+                     :fetch      mls-sensors-fetch))
 
 (provide 'mls-sensors)
 ;;; mls-sensors ends here

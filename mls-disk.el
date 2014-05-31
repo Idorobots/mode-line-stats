@@ -37,33 +37,43 @@
 ;; (mls-disk-start)
 
 ;;; Code:
-
-(require 'cl)
-(require 'mls-common)
-
-(defvar mls-disk-formatters nil)
-(defvar mls-disk-devices nil)
-(defvar mls-disk-timer nil)
-(defvar mls-disk-data nil)
-(defvar mls-disk-mode-line-string "")
-
-(defvar mls-disk-settings
-  '((:formats
-     ((:primary "&/dev/sda1_p{d}")
-      (:buffer "
-    Used:  %/dev/sda1_p{%}
-    Free:  %/dev/sda1_fG{GB}
-    Total: %/dev/sda1_tG{GB}")
-      (:monitor "&/dev/sda1_p")))
-    (:levels
-     (("%/dev/sda1_p" ((90.0 "crit")
-                       (50.0 "warn")
-                       (0.0  "norm"))))))
-  "DISK stats settings.")
+(require 'mls-module)
 
 (defgroup mls-disk nil
   "Display various disk stats in the mode-line."
   :group 'mls-disk)
+
+(defvar mls-disk-default-levels '((90  "crit")
+                                  (50  "warn")
+                                  (0   "norm")))
+
+(defcustom mls-disk-levels `(("%/dev/sda1_p" ,mls-disk-default-levels))
+  "Module levels."
+  :type 'sexp ;; FIXME: should write a better type here
+  :group 'mls-disk)
+
+(defcustom mls-disk-name "disk"
+  "Module name."
+  :type 'string
+  :group 'mls-disk)
+
+(defcustom mls-disk-mode-line-format "&/dev/sda1_p{d}"
+  "Mode line format."
+  :type 'string
+  :group 'mls-disk)
+
+(defcustom mls-disk-buffer-format "
+    Used:  %/dev/sda1_p{%}
+    Free:  %/dev/sda1_fG{GB}
+    Total: %/dev/sda1_tG{GB}"
+  "Buffer format."
+  :type 'string
+  :group 'mls-disk)
+
+(defcustom mls-disk-monitor-format "&/dev/sda1_p"
+  "Monitor format."
+  :type 'string
+  :type 'mls-disk)
 
 (defcustom mls-disk-update-interval 15
   "Number of seconds between disk stats recalculation."
@@ -79,38 +89,7 @@
   :type 'string
   :group 'mls-disk)
 
-(defun mls-disk-update ()
-  "Update stats."
-  (setq mls-disk-data (mls-disk-stats))
-  (setq mls-disk-mode-line-string (mls-data-to-string mls-disk-data))
-  (mls-module-update))
-
-(defun mls-disk-start ()
-  "Start displaying disk usage stats in the mode-line."
-  (interactive)
-
-  (unless mls-disk-devices
-    (setq mls-disk-devices (list (caar (mls-disk-fetch)))))
-
-  (mls-disk-formatters-init)
-
-  (setq mls-disk-mode-line-string "")
-  (mls-set-timer 'mls-disk-timer
-                 mls-disk-update-interval
-                 'mls-disk-update))
-
-(defun mls-disk-stop ()
-  "Stop displaying disk usage stats in the mode-line."
-  (interactive)
-  (setq mls-disk-mode-line-string "")
-  (mls-cancel-timer 'mls-disk-timer))
-
-(defun mls-disk-stats ()
-  "Build stats."
-  (let ((stats (mls-disk-fetch)))
-    (mls-format-expand-list mls-disk-formatters mls-disk-format stats)))
-
-(defun mls-disk-fetch ()
+(defun mls-disk-fetch (&optional module)
   "Returns a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
@@ -121,6 +100,10 @@
               (cons (car lst)
                     (mapcar #'string-to-number (cdr lst))))
             stats)))
+
+(defun mls-disk-devices ()
+  "List all devices."
+  (mapcar #'car (mls-disk-fetch)))
 
 (defun mls-disk-normalize-value (value unit)
   "Normalize VALUE using UNIT magnitude (M G or T)."
@@ -140,25 +123,39 @@
 
 (defun mls-disk-formatters-init ()
   "Initialize the formatters."
-  (setq mls-disk-formatters nil)
-  (mapc #'(lambda (device)
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "p" 4))
+  (let ((formatters nil))
+    (mapc #'(lambda (device)
+                (add-to-list 'formatters (mls-disk-build-formatter device "p" 4))
 
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'M))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'G))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'T))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "u" 2 'K))
+                (add-to-list 'formatters (mls-disk-build-formatter device "u" 2 'M))
+                (add-to-list 'formatters (mls-disk-build-formatter device "u" 2 'G))
+                (add-to-list 'formatters (mls-disk-build-formatter device "u" 2 'T))
+                (add-to-list 'formatters (mls-disk-build-formatter device "u" 2 'K))
 
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'M))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'G))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'T))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "f" 3 'K))
+                (add-to-list 'formatters (mls-disk-build-formatter device "f" 3 'M))
+                (add-to-list 'formatters (mls-disk-build-formatter device "f" 3 'G))
+                (add-to-list 'formatters (mls-disk-build-formatter device "f" 3 'T))
+                (add-to-list 'formatters (mls-disk-build-formatter device "f" 3 'K))
 
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'M))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'G))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'T))
-            (add-to-list 'mls-disk-formatters (mls-disk-build-formatter device "t" 1 'K)))
-        mls-disk-devices))
+                (add-to-list 'formatters (mls-disk-build-formatter device "t" 1 'M))
+                (add-to-list 'formatters (mls-disk-build-formatter device "t" 1 'G))
+                (add-to-list 'formatters (mls-disk-build-formatter device "t" 1 'T))
+                (add-to-list 'formatters (mls-disk-build-formatter device "t" 1 'K)))
+            (mls-disk-devices))
+    formatters))
+
+(mls-module-define `(:name ,mls-disk-name
+                     :mode-line-format ,mls-disk-mode-line-format
+                     :buffer-format ,mls-disk-buffer-format
+                     :format ,mls-disk-format
+                     :monitor-format ,mls-disk-monitor-format
+                     :levels  ,mls-disk-levels
+                     :interval ,mls-disk-update-interval
+                     :timer nil
+                     :data nil
+                     :mode-line-string ""
+                     :formatters ,(mls-disk-formatters-init)
+                     :fetch      mls-disk-fetch))
 
 (provide 'mls-disk)
 ;;; mls-disk ends here

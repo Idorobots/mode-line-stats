@@ -124,9 +124,7 @@
 
 
 ;;; Code:
-
-;; TODO: Remove cl dependency
-(require 'cl)
+(require 'mls-module)
 
 (defgroup mode-line-stats nil
   "Minor mode for mode-line-stats"
@@ -144,8 +142,10 @@
 (defconst mls-modules-available '(battery cpu memory disk misc sensors)
   "Modules available to use.")
 
-(defvar mls-modules '(cpu memory disk misc)
+(defvar mls-modules '(cpu)
   "Modules enabled.")
+
+(defvar mls-format-keys '(:mode-line-format :buffer-format :monitor-format))
 
 (defvar mls-position :left
   "Set the position of mls.
@@ -234,55 +234,33 @@ but it will be restored after that.")
 (defvar mls-no-data-string "?"
   "String to show while loading data.")
 
-(defun mls-set-setting (list keys value)
-  "Set a value in the settings alist.
-Given an alist of settings LIST and a list of KEYS set the VALUE.
-KEYS should be a list with format '\(:formats :primary\)."
-  (let ((setting (mls-get-setting list keys t)))
-    (setf (cadr setting) value)))
-
-(defun mls-get-setting (list keys &optional return-last-group-p)
-  "Get the value of the settings list.
-Given an alist of settings LIST and a list of KEYS return the VALUE.
-If RETURN-LAST-GROUP-P is non-nil it will return the last list that
-contains the VALUE instead of only the VALUE."
-  (let ((value (cdr (assoc (car keys) list)))
-        (morekeys (cdr keys)))
-    (cond (morekeys
-           (mls-get-setting (car value) morekeys return-last-group-p))
-          (return-last-group-p
-           (assoc (car keys) list))
-          ((listp value)
-           (car value))
-          (t value))))
-
-(defun mls-get-level (levels value)
-  "Given a list of LEVELS and a VALUE return the level name."
-  (let ((items levels)
-        (item nil)
-        (current-value nil)
-        (current-level nil)
+(defun mls-get-level (module fmt value)
+  "Given a MODULE, FMT and the VALUE return the level name."
+  (let ((levels (cadr (assoc fmt (mls-module-get module :levels))))
+        (level nil)
+        (level-value nil)
+        (level-name nil)
         (found nil))
 
-    (while (and items value (not found))
-      (setq item (car items))
-      (setq current-value (car item))
-      (setq current-level (cadr item))
+    (while (and levels value (not found))
+      (setq level (car levels))
+      (setq level-value (car level))
+      (setq level-name (cadr level))
       (setq found (cond
-                   ((and (numberp value) (numberp current-value))
-                    (when (>= value current-value) current-level))
-                   ((and (stringp value) (stringp current-value))
-                    (when (string= value current-value) current-level))))
-      (setq items (cdr items)))
+                   ((and (numberp value) (numberp level-value))
+                    (when (>= value level-value) level-name))
+                   ((and (stringp value) (stringp level-value))
+                    (when (string= value level-value) level-name))))
+      (setq levels (cdr levels)))
     found))
 
-(defun mls-get-face (levels value module-fmt-type)
+(defun mls-get-face (module fmt value fmt-type)
   "Return the face of the current level.
-Given a list of LEVELS, a VALUE and the MODULE-FMT-TYPE
+Given a MODULE, FMT, VALUE and the FMT-TYPE
 it will return the face of the current level."
-  (let ((level (mls-get-level levels value)))
+  (let ((level (mls-get-level module fmt value)))
     (when level
-      (if (eq module-fmt-type :primary)
+      (if (eq fmt-type :mode-line-format)
           (format "mls-%s-primary-face" level)
         (format "mls-%s-buffer-face" level)))))
 
@@ -352,7 +330,7 @@ COMMENT additional text to be propertized and displayed."
   "Convert custom symbols of FMT."
   (replace-regexp-in-string "&" "%" fmt))
 
-(defun mls-parse-format (fmt-string &optional normalizep)
+(defun mls-get-format-info (fmt-string &optional normalizep)
   "Given a FMT-STRING it parse the formatters.
 if NORMALIZEP is nil it will use custom formatters.
 Return a list with a list for each formatter
@@ -373,22 +351,15 @@ containg the formatter and the comment.
       (setq result (cons (list fmt comment) result)))
     (reverse result)))
 
-(defun mls-get-formatters (module-alist &optional normalizep)
-  "Given an alist MODULE-ALIST of settings return a list with all formatters.
+(defun mls-get-active-formatters (module-or-name &optional normalizep)
+  "Given MODULE-OR-NAME return a list with all active formatters.
 If NORMALIZEP is nil it will use custom formatters."
-  (let ((formats (mls-get-setting module-alist '(:formats)))
-        (result nil))
-    (setq result (mapcar #'(lambda (a)
-                             (cadr a))
-                         formats))
+  (let ((result (mapcar #'(lambda (key)
+                             (mls-module-get module-or-name key))
+                         mls-format-keys)))
     (setq result (mapconcat 'identity result " "))
-    (setq result (mls-parse-format result normalizep))
+    (setq result (mls-get-format-info result normalizep))
     (mapcar #'(lambda (a) (car a)) result)))
-
-(defun mls-get-format (module-alist)
-  "Return a string with all formatters \(without custom formatters\).
-MODULE-ALIST is an alist of settings."
-  (mapconcat 'identity (mls-get-formatters module-alist t) " "))
 
 (defun mls-find-formatter-position (formatter list)
   "Find the position of the FORMATTER in the LIST."
@@ -398,78 +369,67 @@ MODULE-ALIST is an alist of settings."
     (when items
       (- total remain))))
 
-(defun mls-current-monitor-level (module-alist values)
+(defun mls-get-current-monitor-level (module values)
   "Return the current level name of the hook formatter.
-MODULE-ALIST is an alist of setttings.
-VALUES is a list of values."
-  (let* ((output-fmt (mls-get-setting module-alist (list :formats :monitor)))
-         (formatters (mls-get-formatters module-alist t))
-         (levels nil)
-         (item (car (mls-parse-format output-fmt)))
+MODULE is a module plist.
+VALUES is a list of data values."
+  (let* ((output-fmt (mls-module-get module :monitor-format))
+         (formatters (mls-get-active-formatters module t))
+         (fmt-info (car (mls-get-format-info output-fmt)))
          (value nil)
-         (item-fmt nil)
+         (fmt nil)
          (index nil))
 
-    (when item
-      (setq item-fmt (mls-normalize-formatter (car item)))
-      (setq index (mls-find-formatter-position item-fmt formatters))
-      (setq levels (mls-get-setting module-alist (list :levels item-fmt)))
+    (when fmt-info
+      (setq fmt (mls-normalize-formatter (car fmt-info)))
+      (setq index (mls-find-formatter-position fmt formatters))
       (setq value (mls-normalize-value (nth index values)))
       (when value
-        (mls-get-level levels value)))))
+        (mls-get-level module fmt value)))))
 
-(defun mls-process-module (module-alist values module-fmt-type)
+(defun mls-process (module data fmt-type)
   "Process the module and return the string to be displayed in mode-line.
-MODULE-ALIST is an alist of settings.
-VALUES is a list of values.
-MODULE-FMT-TYPE is the format type, usually :primary or :buffer."
-  (let* ((output-fmt (mls-get-setting module-alist (list :formats module-fmt-type)))
-         (formatters (mls-get-formatters module-alist t))
-         (current-formatters (mls-parse-format output-fmt))
-         (levels nil)
-         (item nil)
-         (item-fmt nil)
-         (item-fmt-sane nil)
+MODULE is a plist.
+DATA is a list of values.
+FMT-TYPE is the format type, usually :mode-line-format or :buffer-format."
+  (let* ((output-fmt (mls-module-get module fmt-type))
+         (formatters-info (mls-get-format-info output-fmt))
+         (active-formatters (mls-get-active-formatters module t))
+         (formatter-info nil)
+         (fmt nil)
+         (fmt-sane nil)
+         (value nil)
          (comment nil)
          (regexp nil)
-         (value nil)
-         (face nil)
-         (hide-value-p nil)
          (index nil))
 
-    (dolist (item current-formatters)
-      (setq item-fmt (car item))
-      (setq item-fmt-sane (mls-normalize-formatter item-fmt))
-      (setq hide-value-p (mls-hidden-formatter-p item-fmt))
-      (setq comment (cadr item))
-      (setq regexp (concat item-fmt (when comment
-                                      (format "{%s}" comment))))
-
-      (setq index (mls-find-formatter-position item-fmt-sane formatters))
-      (setq levels (mls-get-setting module-alist (list :levels item-fmt-sane)))
-      (setq value (mls-normalize-value (nth index values)))
-      (setq face (mls-get-face levels value module-fmt-type))
-      (setq output-fmt (replace-regexp-in-string regexp
-                                                 (mls-pretty-value value
-                                                                   face
-                                                                   hide-value-p
-                                                                   comment)
-                                                 output-fmt)))
+    (dolist (formatter-info formatters-info)
+      (setq fmt (car formatter-info))
+      (setq comment (cadr formatter-info))
+      (setq fmt-sane (mls-normalize-formatter fmt))
+      (setq regexp (concat fmt (when comment
+                                 (format "{%s}" comment))))
+      (setq index (mls-find-formatter-position fmt-sane active-formatters))
+      (setq value (mls-normalize-value (nth index data)))
+      (setq value (mls-pretty-value value
+                                    (mls-get-face module fmt-sane value fmt-type)
+                                    (mls-hidden-formatter-p fmt)
+                                    comment))
+      (setq output-fmt (replace-regexp-in-string regexp value output-fmt)))
     output-fmt))
 
-(defun mls-run-hook (module-name module-alist module-fmt-type values)
+(defun mls-run-hook (module values fmt-type)
   "Run the hook with parameters.
-MODULE-NAME: module name
-MODULE-ALIST: alist of settings
-MODULE-FMT-TYPE: format type
-VALUES: a list of values used to get the current level"
-  (let ((level (mls-current-monitor-level module-alist values)))
-    (run-hook-with-args 'mls-monitor-hook
-                        module-name
-                        level
-                        module-alist
-                        module-fmt-type)))
+MODULE: module plist.
+VALUES: a list of data values used to get the current level.
+FMT-TYPE: format type."
+  (run-hook-with-args 'mls-monitor-hook
+                      (mls-module-get module :name)
+                      (mls-get-current-monitor-level module values)
+                      module
+                      fmt-type))
 
+;; TODO: check for required arguments (:start, :stop,...)
 (defun mls-module-valid-p (module-name)
   "Return t if MODULE-NAME is a valid module, nil otherwise."
   (let ((module-sym (if (stringp module-name)
@@ -479,64 +439,45 @@ VALUES: a list of values used to get the current level"
 
 (defun mls-module-enabled-p (module-name)
   "Return t if MODULE-NAME is enabled, nil otherwise."
-  (let ((module-sym (intern module-name)))
-    (member module-sym mls-modules)))
+  (let ((module-sym (intern module-name))
+        (running-p (mls-module-get module-name :running)))
+    (and running-p (member module-sym mls-modules))))
 
 (defun mls-disable-module (module-name)
   "Disable the module MODULE-NAME."
-  (let ((var-stop (intern (format "mls-%s-stop" module-name))))
-    (funcall var-stop)))
+  (when (mls-module-enabled-p module-name)
+    (mls-module-stop module-name)
+    (mls-module-set module-name :running nil)))
 
 (defun mls-enable-module (module-name)
   "Enable the module with name MODULE-NAME."
-  (let ((found (mls-module-valid-p module-name))
-        (var-fmt (intern (format "mls-%s-format" module-name)))
-        (var-start (intern (format "mls-%s-start" module-name)))
-        (var-settings (intern (format "mls-%s-settings" module-name)))
-        (module-file (intern (format "mls-%s" module-name))))
+  (let ((module-file nil)
+        (module-format nil)
+        (enabled-p (mls-module-enabled-p module-name)))
 
-    (when found
+    (when (and (mls-module-valid-p module-name) (not enabled-p))
+      (setq module-file (intern (format "mls-%s" module-name)))
       (require module-file)
-      (set var-fmt (mls-get-format (symbol-value var-settings)))
-      (funcall var-start))))
+      (message (format "Enabling module: %s" module-name))
+      (setq module-format (mapconcat 'identity
+                                     (mls-get-active-formatters module-name t)
+                                     " "))
+      (mls-module-set module-name :format module-format)
+      (mls-module-start module-name)
+      (mls-module-set module-name :running t))))
 
-(defun mls-display (module-name module-fmt-type)
+(defun mls-display (module-name fmt-type)
   "Display the module in the mode-line.
 MODULE-NAME corresponds to module name.
-MODULE-FMT-TYPE is the mode-line format type \(:primary or :buffer\)."
-  (let ((data nil)
-        (mode-line-string nil)
-        (output nil)
-        (module-name (downcase module-name))
-        (module-alist-backup nil)
-        (module-alist-sym nil)
-        (module-alist-value nil))
+FMT-TYPE is the format type \(:mode-line-format or :buffer-format\)."
+  (when (mls-module-enabled-p module-name)
+    (let* ((module-name (downcase module-name))
+           (module (mls-module-get module-name))
+           (module-backup (copy-tree module))
+           (data (mls-module-get module-backup :data)))
 
-    (when (mls-module-enabled-p module-name)
-      (setq data (symbol-value (intern
-                                (format "mls-%s-data" module-name))))
-      (setq module-alist-sym (intern
-                              (format "mls-%s-settings" module-name)))
-
-      (setq module-alist-value (symbol-value module-alist-sym))
-
-      ;; backup settings
-      (setq module-alist-backup (copy-tree module-alist-value))
-
-      (mls-run-hook module-name
-                    module-alist-value
-                    module-fmt-type
-                    data)
-
-      (setq output (mls-process-module module-alist-value
-                                       data
-                                       module-fmt-type))
-
-      ;; restore settings
-      (set module-alist-sym module-alist-backup)
-
-      output)))
-
+      (mls-run-hook module-backup data fmt-type)
+      (mls-process module-backup data fmt-type))))
 
 (defun mls-get-position ()
   "Get the format symbol acording to mls-position.
@@ -592,8 +533,8 @@ will return 'header-line-format."
                         module-name)
                 'face font-lock-type-face)))
 
-(defun mls-buffer-update ()
-  "Update mls buffer."
+(defun mls-buffer-refresh ()
+  "Refresh mls buffer."
   (interactive)
   (with-current-buffer mls-buffer
     (erase-buffer)
@@ -601,7 +542,7 @@ will return 'header-line-format."
     (insert "\n")
     (dolist (module mls-modules)
       (insert (mls-buffer-module-title module))
-      (insert (mls-display (format "%s" module) :buffer))
+      (insert (mls-display (format "%s" module) :buffer-format))
       (insert "\n"))))
 
 (defun mls-mode-line-setup ()
@@ -619,7 +560,7 @@ will return 'header-line-format."
   (let ((mode-line-format-sym 'mls-format-primary)
         (modules (reverse mls-modules)))
     (dolist (module-sym modules)
-      (push `(:eval (mls-display ,(symbol-name module-sym) :primary))
+      (push `(:eval (mls-display ,(format "%s" module-sym) :mode-line-format))
             (symbol-value mode-line-format-sym)))))
 
 (defun mls-enable-mode-line ()
@@ -637,7 +578,7 @@ will return 'header-line-format."
     (mls-backup-format))
 
   (dolist (module-sym mls-modules)
-    (mls-enable-module module-sym))
+    (mls-enable-module (symbol-name module-sym)))
 
   (mls-mode-line-setup)
 
@@ -650,7 +591,7 @@ will return 'header-line-format."
   (mls-restore-format)
 
   (dolist (module-sym mls-modules)
-    (mls-disable-module module-sym)))
+    (mls-disable-module (symbol-name module-sym))))
 
 (defvar mode-line-stats-mode-map (make-keymap)
   "Keymap for mode-line-stats mode.")

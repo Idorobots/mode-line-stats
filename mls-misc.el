@@ -45,9 +45,7 @@
 ;;; TODO:
 
 ;;; Code:
-
-(require 'cl)
-(require 'mls-common)
+(require 'mls-module)
 
 (defgroup mls-misc nil
   "Display various system stats in the mode-line."
@@ -87,47 +85,37 @@
 %T - Current time according to `format-time-string' called with `mls-misc-time-format'.
 %D - Like %T, separated for convinience.")
 
-(defvar mls-misc-data nil)
-(defvar mls-misc-mode-line-string "")
-(defvar mls-misc-timer nil)
-(defvar mls-misc-formatters nil)
+(defvar mls-misc-default-levels '((2.0 "crit")
+                                  (1.0 "warn")
+                                  (0.0  "norm")))
+(defcustom mls-misc-levels `(("%L1"  ,mls-misc-default-levels)
+                             ("%L" ,mls-misc-default-levels))
+  "Module levels."
+  :type 'sexp ;; FIXME: should write a better type here
+  :group 'mls-misc)
 
-(defvar mls-misc-settings
-  '((:formats
-     ((:primary "&L1{l}")
-      (:buffer "
-    Load avg: %L")
-      (:monitor "&L1")))
-    (:levels
-     (("%L1" ((2.0 "crit")
-              (1.0 "warn")
-              (0.0  "norm")))
-      ("%L" ((2.0 "crit")
-             (1.0 "warn")
-             (0.0  "norm"))))))
-  "MISC stats settings.")
+(defcustom mls-misc-name "misc"
+  "Module name."
+  :type 'string
+  :group 'mls-misc)
 
-(defun mls-misc-update ()
-  "Update stats."
-  (setq mls-misc-data (mls-misc-stats))
-  (setq mls-misc-mode-line-string (mls-data-to-string mls-misc-data))
-  (mls-module-update))
+(defcustom mls-misc-mode-line-format "&L1{l}"
+  "Mode line format."
+  :type 'string
+  :group 'mls-misc)
 
-(defun mls-misc-start ()
-  "Start displaying misc stats in the mode-line."
-  (interactive)
-  (setq mls-misc-mode-line-string "")
-  (mls-set-timer 'mls-misc-timer
-                 mls-misc-update-interval
-                 'mls-misc-update))
+(defcustom mls-misc-buffer-format "
+    Load avg: %L"
+  "Buffer format."
+  :type 'string
+  :group 'mls-misc)
 
-(defun mls-misc-stop ()
-  "Stop displaying misc system stats in the mode-line."
-  (interactive)
-  (setq mls-misc-mode-line-string "")
-  (mls-cancel-timer 'mls-misc-timer))
+(defcustom mls-misc-monitor-format "&L1"
+  "Monitor format."
+  :type 'string
+  :type 'mls-misc)
 
-(defun mls-misc-stats ()
+(defun mls-misc-fetch (&optional module)
   (let* ((load (map 'list
                     (lambda (x) (/ x 100.0))
                     (load-average)))
@@ -138,11 +126,10 @@
          (system-uptime (format-seconds mls-misc-system-uptime-format
                                         (- (float-time (current-time))
                                            boot-time))))
-    (mls-format-expand-list mls-misc-formatters
-                   mls-misc-format
-                   (list load boot-time emacs-uptime system-uptime))))
+    (list load boot-time emacs-uptime system-uptime)))
 
-(setq mls-misc-formatters
+(defun mls-misc-formatters-init ()
+  "Build misc formatters."
   (list ;; FIXME `replace-match' errors with `args-out-of-range'
         ;; FIXME As a workaround precalculate uptimes in `mls-misc'
         ;; FIXME and pass as the optional argument to `mls-format-expand'.
@@ -167,8 +154,20 @@
         (cons "T" (lambda (stats)
                     (format-time-string mls-misc-time-format)))
         (cons "D" (lambda (stats)
-                    (format-time-string mls-misc-date-format)))
-  ))
+                    (format-time-string mls-misc-date-format)))))
+
+(mls-module-define `(:name ,mls-misc-name
+                     :mode-line-format ,mls-misc-mode-line-format
+                     :buffer-format ,mls-misc-buffer-format
+                     :format ,mls-misc-format
+                     :monitor-format ,mls-misc-monitor-format
+                     :levels  ,mls-misc-levels
+                     :interval ,mls-misc-update-interval
+                     :timer nil
+                     :data nil
+                     :mode-line-string ""
+                     :formatters ,(mls-misc-formatters-init)
+                     :fetch      mls-misc-fetch))
 
 (provide 'mls-misc)
 ;;; mls-misc.el ends here

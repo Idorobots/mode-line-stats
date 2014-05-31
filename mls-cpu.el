@@ -21,6 +21,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
 
 ;;; Usage:
 
@@ -43,34 +44,7 @@
 ;; CPU temperature, frequency, etc.
 
 ;;; Code:
-
-(require 'cl)
-(require 'mls-common)
-
-(defvar *mls-cpu-previous-stats* nil)
-(defvar mls-cpu-timer nil)
-(defvar mls-cpu-data nil)
-(defvar mls-cpu-mode-line-string "")
-(defvar mls-cpu-formatters nil)
-
-(defvar mls-cpu-settings
-  '((:formats
-     ((:primary "&A{c}")
-      (:buffer "
-    CPU0: %C0{%}
-    CPU1: %C1{%}")
-      (:monitor "&A")))
-    (:levels
-     (("%A" ((90.0 "crit")
-             (50.0 "warn")
-             (0.0  "norm")))
-      ("%C0" ((90.0 "crit")
-              (50.0 "warn")
-              (0.0  "norm")))
-      ("%C1" ((90.0 "crit")
-              (50.0 "warn")
-              (0.0  "norm"))))))
-  "CPU stats settings.")
+(require 'mls-module)
 
 (defgroup mls-cpu nil
   "Display various CPU stats in the mode-line."
@@ -79,6 +53,31 @@
 (defcustom mls-cpu-update-interval 2
   "Number of seconds between CPU stats recalculation."
   :type 'number
+  :group 'mls-cpu)
+
+(defvar mls-cpu-default-levels '((90  "crit")
+                                 (50  "warn")
+                                 (0   "norm")))
+(defcustom mls-cpu-levels `(("%A"  ,mls-cpu-default-levels)
+                            ("%C0" ,mls-cpu-default-levels)
+                            ("%C1" ,mls-cpu-default-levels))
+  "Module levels."
+  :type 'sexp ;; FIXME: should write a better type here
+  :group 'mls-cpu)
+
+(defcustom mls-cpu-name "cpu"
+  "Module name."
+  :type 'string
+  :group 'mls-cpu)
+
+(defcustom mls-cpu-mode-line-format "&C0{c}"
+  "Mode line format."
+  :type 'string
+  :group 'mls-cpu)
+
+(defcustom mls-cpu-buffer-format "%C0{%}"
+  "Buffer format."
+  :type 'string
   :group 'mls-cpu)
 
 (defcustom mls-cpu-format "%A %C0 %C1"
@@ -91,39 +90,20 @@
   :type 'string
   :group 'mls-cpu)
 
-(defun mls-cpu-update ()
-  "Update stats."
-  (setq mls-cpu-data (mls-cpu-stats))
-  (setq mls-cpu-mode-line-string (mls-data-to-string mls-cpu-data))
-  (mls-module-update))
+(defcustom mls-cpu-monitor-format "&A"
+  "Monitor format."
+  :type 'string
+  :type 'mls-cpu)
 
-(defun mls-cpu-start ()
-  "Start displaying CPU usage stats in the mode-line."
-  (interactive)
-  (setq mls-cpu-mode-line-string "")
-  (setq *mls-cpu-previous-stats* (mls-cpu-read-stats))
-  (mls-set-timer 'mls-cpu-timer
-                 mls-cpu-update-interval
-                 'mls-cpu-update))
-
-(defun mls-cpu-stop ()
-  "Stop displaying CPU usage stats in the mode-line."
-  (interactive)
-  (setq mls-cpu-mode-line-string "")
-  (mls-cancel-timer 'mls-cpu-timer))
-
-(defun mls-cpu-stats ()
-  "Build stats."
-  (let ((stats (mls-cpu-fetch)))
-    (mls-format-expand-list mls-cpu-formatters mls-cpu-format stats)))
-
-(defun mls-cpu-fetch ()
-  "Returns a bunch of CPU stats for each core and averages in a form of an alist."
+(defun mls-cpu-fetch (&optional module)
+  "Return a bunch of CPU stats for each core and averages in a form of an alist.
+MODULE is passed as argument when called from `mls-module-call'."
   ;; TODO Needs moar stats.
   (let* ((cores (remove-if-not (lambda (line)
                                  (string-prefix-p "cpu" (car line)))
                                (mls-cpu-read-stats)))
-         (stats (mls-mapcar*
+         (previous-stats (mls-module-get module :previous-stats))
+         (stats (mls-module-mapcar*
                         (lambda (cpu prev-cpu)
                           (let* ((norm-user (nth 1 cpu))
                                  (nice-user (nth 2 cpu))
@@ -146,12 +126,13 @@
                                  (io-result (/ (- iowait prev-iowait)
                                                step-denom)))
                           (list (car cpu) user-result sys-result io-result)))
-                        cores *mls-cpu-previous-stats*)))
-    (setq *mls-cpu-previous-stats* cores)
+                        cores previous-stats)))
+    (mls-module-set module :previous-stats cores)
     stats))
 
-(defun mls-cpu-read-stats ()
-  "Reads /proc/stat and returns an alist of cores every `mls-cpu-update-interval'."
+(defun mls-cpu-read-stats (&optional module)
+  "Read /proc/stat and return an alist of cores every `mls-cpu-update-interval'.
+MODULE is passed as argument when called from `mls-module-call'."
   (let ((stats (remove-if (lambda (str) (string= str ""))
                  (split-string
                    (shell-command-to-string "cat /proc/stat")
@@ -164,6 +145,7 @@
             stats)))
 
 (defmacro mls-cpu-make-functions (name cpu-name)
+  "Macro to make formatters functions using NAME and CPU-NAME."
   `(list
     ;; User CPU usage.
     (cons ,(concat name "u")
@@ -182,7 +164,8 @@
           (lambda (stats)
             (format "%.0f" (* 100 (apply #'+ (cdr (assoc ,cpu-name stats)))))))))
 
-(setq mls-cpu-formatters
+(defun mls-cpu-formatters-init ()
+  "Build cpu formatteres."
   `(,@(mls-cpu-make-functions "A" "cpu")
     ,@(mls-cpu-make-functions "C0" "cpu0")
     ,@(mls-cpu-make-functions "C1" "cpu1")
@@ -194,6 +177,29 @@
     ,@(mls-cpu-make-functions "C7" "cpu7")
     ; ...
 ))
+
+(defun mls-cpu-init (&optional module)
+  "Start MODULE displaying CPU usage stats in the mode-line."
+  (mls-module-set module
+                  :previous-stats (mls-module-call module :read-stats)))
+
+(mls-module-define `(:name ,mls-cpu-name
+                     :mode-line-format ,mls-cpu-mode-line-format
+                     :buffer-format ,mls-cpu-buffer-format
+                     :format ,mls-cpu-format
+                     :monitor-format ,mls-cpu-monitor-format
+                     :levels  ,mls-cpu-levels
+                     :interval ,mls-cpu-update-interval
+                     :timer nil
+                     :previous-stats nil
+                     :data nil
+                     :mode-line-string ""
+                     :formatters ,(mls-cpu-formatters-init)
+                     :init       mls-cpu-init
+                     :fetch      mls-cpu-fetch
+                     :read-stats mls-cpu-read-stats))
+
+;; (mls-module-call "cpu" :start)
 
 (provide 'mls-cpu)
 ;;; mls-cpu.el ends here
