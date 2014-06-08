@@ -142,7 +142,7 @@
 (defconst mls-modules-available '(battery cpu memory disk misc sensors)
   "Modules available to use.")
 
-(defvar mls-modules '(cpu)
+(defvar mls-modules '(cpu memory disk misc sensors)
   "Modules enabled.")
 
 (defvar mls-format-keys '(:mode-line-format :buffer-format :monitor-format))
