@@ -180,19 +180,19 @@ MODULE-FMT-TYPE: a keyword with the module fmt type.
 The values of MODULE-ALIST can be changed inside the hook
 but it will be restored after that.")
 
-(defface mls-norm-primary-face
+(defface mls-norm-face
   '((((class color))
      :background "#b6bd68" :foreground "#1d1f21"))
   "Normal face used in primary mode-line."
   :group 'mode-line-stats)
 
-(defface mls-warn-primary-face
+(defface mls-warn-face
   '((((class color))
      :background "#de935f" :foreground "#1d1f21"))
   "Warning face used in primary mode-line."
   :group 'mode-line-stats)
 
-(defface mls-crit-primary-face
+(defface mls-crit-face
   '((((class color))
      :background "#cc6666" :foreground "#1d1f21"))
   "Critical face used in primary mode-line."
@@ -238,8 +238,8 @@ it will return the face of the current level."
   (let ((level (mls-get-level module fmt value)))
     (when level
       (if (eq fmt-type :mode-line-format)
-          (format "mls-%s-primary-face" level)
-        (format "mls-%s-buffer-face" level)))))
+          (format "mls-%s-face" level)
+        (format "mls-buffer-%s-face" level)))))
 
 (defun mls-normalize-value (value)
   "Convert the VALUE to integer if contain a number."
