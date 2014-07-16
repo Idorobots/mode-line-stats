@@ -140,9 +140,6 @@
   "\\([\%\&][^ \{]+\\)\\(\{\\([^\}]+\\)?\}\\)?"
   "Regexp to parse formatters in the format strings.")
 
-(defconst mls-modules-available '(battery cpu memory disk misc sensors)
-  "Modules available to use.")
-
 (defvar mls-modules '(cpu memory disk misc sensors)
   "Modules enabled.")
 
@@ -407,14 +404,13 @@ FMT-TYPE: format type."
                       fmt-type))
 
 ;; TODO: check for required arguments (:start, :stop,...)
-(defun mls-module-valid-p (module-name)
+(defun mls-valid-module-p (module-name)
   "Return t if MODULE-NAME is a valid module, nil otherwise."
-  (let ((module-sym (if (stringp module-name)
-                        (intern module-name)
-                      module-name)))
-    (member module-sym mls-modules-available)))
+  (let ((module (mls-module-get module-name)))
+    (when module
+        (mls-module~valid-p module))))
 
-(defun mls-module-enabled-p (module-name)
+(defun mls-enabled-module-p (module-name)
   "Return t if MODULE-NAME is enabled, nil otherwise."
   (let ((module-sym (intern module-name))
         (running-p (mls-module-get module-name :running)))
@@ -422,7 +418,7 @@ FMT-TYPE: format type."
 
 (defun mls-disable-module (module-name)
   "Disable the module MODULE-NAME."
-  (when (mls-module-enabled-p module-name)
+  (when (mls-enabled-module-p module-name)
     (mls-module-stop module-name)
     (mls-module-set module-name :running nil)))
 
@@ -430,11 +426,11 @@ FMT-TYPE: format type."
   "Enable the module with name MODULE-NAME."
   (let ((module-file nil)
         (module-format nil)
-        (enabled-p (mls-module-enabled-p module-name)))
+        (enabled-p (mls-enabled-module-p module-name)))
 
-    (when (and (mls-module-valid-p module-name) (not enabled-p))
-      (setq module-file (intern (format "mls-%s" module-name)))
-      (require module-file)
+    (setq module-file (intern (format "mls-%s" module-name)))
+
+    (when (and (require module-file) (mls-valid-module-p module-name) (not enabled-p))
       (message (format "Enabling module: %s" module-name))
       (setq module-format (mapconcat 'identity
                                      (mls-get-active-formatters module-name t)
@@ -447,7 +443,7 @@ FMT-TYPE: format type."
   "Display the module in the mode-line.
 MODULE-NAME corresponds to module name.
 FMT-TYPE is the format type \(:mode-line-format or :buffer-format\)."
-  (when (mls-module-enabled-p module-name)
+  (when (mls-enabled-module-p module-name)
     (let* ((module-name (downcase module-name))
            (module (mls-module-get module-name))
            (module-backup (copy-tree module))
