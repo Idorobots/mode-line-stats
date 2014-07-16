@@ -125,6 +125,7 @@
 
 ;;; Code:
 (require 'mls-module)
+(require 'mls-buffer)
 
 (defgroup mode-line-stats nil
   "Minor mode for mode-line-stats"
@@ -196,30 +197,6 @@ but it will be restored after that.")
      :background "#cc6666" :foreground "#1d1f21"))
   "Critical face used in primary mode-line."
   :group 'mode-line-stats)
-
-(defface mls-norm-buffer-face
-  '((((class color))
-     :foreground "#b6bd68"))
-  "Normal face used in buffer mode-line."
-  :group 'mode-line-stats)
-
-(defface mls-warn-buffer-face
-  '((((class color))
-     :foreground "#de935f"))
-  "Warning face used in buffer mode-line."
-  :group 'mode-line-stats)
-
-(defface mls-crit-buffer-face
-  '((((class color))
-     :foreground "#cc6666"))
-  "Critical face used in buffer mode-line."
-  :group 'mode-line-stats)
-
-(defvar mls-buffer-name "*mls*"
-  "Buffer name.")
-
-(defvar mls-buffer nil
-  "Buffer object.")
 
 (defvar mls-format-primary nil
   "Primary format to show stats.
@@ -521,40 +498,6 @@ will return 'header-line-format."
          (setq mls-format
                (cons mls-format-primary
                      mls-format-backup)))))
-
-(defun mls-buffer-init ()
-  "Create mls buffer."
-  (setq mls-buffer (get-buffer-create mls-buffer-name))
-  (buffer-disable-undo mls-buffer)
-  (with-current-buffer mls-buffer
-    (read-only-mode)))
-
-(defun mls-buffer-module-title (module-name)
-  "Return the module title for MODULE-NAME."
-  (let ((module-name (capitalize (format "%s" module-name))))
-    (propertize (format "\n %s stats\n"
-                        module-name)
-                'face font-lock-type-face)))
-
-(defun mls-buffer-refresh ()
-  "Refresh mls buffer."
-  (interactive)
-  (let ((inhibit-read-only t)
-        (line nil)
-        (column nil))
-    (with-current-buffer mls-buffer
-      (setq line (line-number-at-pos))
-      (setq column (current-column))
-      (erase-buffer)
-      (insert (propertize "Mode line stats" 'face font-lock-preprocessor-face))
-      (insert "\n")
-      (dolist (module mls-modules)
-        (insert (mls-buffer-module-title module))
-        (insert (mls-display (format "%s" module) :buffer-format))
-        (insert "\n"))
-      (goto-char (point-min))
-      (forward-line (1- line))
-      (forward-char column))))
 
 (defun mls-mode-line-setup ()
   "Add mode-line-stats format into currrent mode-line."
