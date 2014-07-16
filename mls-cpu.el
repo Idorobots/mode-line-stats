@@ -70,12 +70,12 @@
   :type 'string
   :group 'mls-cpu)
 
-(defcustom mls-cpu-mode-line-format "&C0{c}"
+(defcustom mls-cpu-mode-line-format "&A{c}"
   "Mode line format."
   :type 'string
   :group 'mls-cpu)
 
-(defcustom mls-cpu-buffer-format "%C0{%}"
+(defcustom mls-cpu-buffer-format "    CPU: %A{%}"
   "Buffer format."
   :type 'string
   :group 'mls-cpu)
