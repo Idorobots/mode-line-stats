@@ -133,9 +133,6 @@
   :group 'help
   :link '(url-link "http://github.com/agpchil/mode-line-stats"))
 
-(defvar mls-toggle-key (kbd "C-º")
-  "Keybinding to toggle primary/secondary mode-lines.")
-
 (defvar mls-format-regexp
   "\\([\%\&][^ \{]+\\)\\(\{\\([^\}]+\\)?\}\\)?"
   "Regexp to parse formatters in the format strings.")
@@ -532,9 +529,7 @@ will return 'header-line-format."
 
   (mls-mode-line-setup)
 
-  (mls-enable-mode-line)
-
-  (mls-keymap-setup))
+  (mls-enable-mode-line))
 
 (defun mls-turn-off ()
   "Turn off mode-line-stats mode."
@@ -542,14 +537,6 @@ will return 'header-line-format."
 
   (dolist (module-sym mls-modules)
     (mls-disable-module (symbol-name module-sym))))
-
-(defvar mode-line-stats-mode-map (make-keymap)
-  "Keymap for mode-line-stats mode.")
-
-(defun mls-keymap-setup ()
-  "Init the keymap."
-;; key bindings
-  (define-key mode-line-stats-mode-map mls-toggle-key 'mls-mode-line-toggle))
 
 (define-minor-mode mode-line-stats-mode
   "Show stats in mode-line."
