@@ -55,9 +55,8 @@
 (defun mls-buffer-init ()
   "Create mls buffer."
   (setq mls-buffer (get-buffer-create mls-buffer-name))
-  (buffer-disable-undo mls-buffer)
   (with-current-buffer mls-buffer
-    (read-only-mode)))
+    (mls-buffer-mode)))
 
 (defun mls-buffer-module-title (module-name)
   "Return the module title for MODULE-NAME."
@@ -90,6 +89,28 @@
   "Show mls buffer."
   (interactive)
   (switch-to-buffer mls-buffer))
+
+(defun mls-buffer-hide ()
+  "Hide mls buffer."
+  (interactive)
+  (switch-to-buffer nil))
+
+(defvar mls-buffer-mode-map
+  (let ((map (make-sparse-keymap)))
+
+    (define-key map "u" 'mls-buffer-refresh)
+    (define-key map "q" 'mls-buffer-hide)
+
+    map)
+  "Keymap for the *mls-buffer* buffer.")
+
+(define-derived-mode mls-buffer-mode special-mode "mls:buffer"
+  "Major mode for the mls buffer.
+\\{mls-buffer-mode-map}."
+  (use-local-map mls-buffer-mode-map)
+   ;; don't record undo info
+  (setq buffer-undo-list t)
+  (read-only-mode))
 
 (provide 'mls-buffer)
 ;;; mls-buffer ends here
