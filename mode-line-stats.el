@@ -124,6 +124,7 @@
 
 
 ;;; Code:
+(require 'dash)
 (require 'mls-module)
 (require 'mls-buffer)
 
@@ -332,14 +333,6 @@ If NORMALIZEP is nil it will use custom formatters."
     (setq result (mls-get-format-info result normalizep))
     (mapcar #'(lambda (a) (car a)) result)))
 
-(defun mls-find-formatter-position (formatter list)
-  "Find the position of the FORMATTER in the LIST."
-  (let* ((total (length list))
-         (items (member formatter list))
-         (remain (length items)))
-    (when items
-      (- total remain))))
-
 (defun mls-get-current-monitor-level (module values)
   "Return the current level name of the hook formatter.
 MODULE is a module plist.
@@ -353,7 +346,7 @@ VALUES is a list of data values."
 
     (when fmt-info
       (setq fmt (mls-normalize-formatter (car fmt-info)))
-      (setq index (mls-find-formatter-position fmt formatters))
+      (setq index (-elem-index fmt formatters))
       (setq value (mls-normalize-value (nth index values)))
       (when value
         (mls-get-level module fmt value)))))
@@ -380,7 +373,7 @@ FMT-TYPE is the format type, usually :mode-line-format or :buffer-format."
       (setq fmt-sane (mls-normalize-formatter fmt))
       (setq regexp (concat fmt (when comment
                                  (format "{%s}" comment))))
-      (setq index (mls-find-formatter-position fmt-sane active-formatters))
+      (setq index (-elem-index fmt-sane active-formatters))
       (setq value (mls-normalize-value (nth index data)))
       (setq value (mls-pretty-value value
                                     (mls-get-face module fmt-sane value fmt-type)
