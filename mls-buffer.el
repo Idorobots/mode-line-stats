@@ -79,7 +79,7 @@
       (insert "\n")
       (dolist (module mls-modules)
         (insert (mls-buffer-module-title module))
-        (insert (mls-display (format "%s" module) :buffer-format))
+        (insert (mls-run-module (format "%s" module) :buffer-format))
         (insert "\n"))
       (goto-char (point-min))
       (forward-line (1- line))
