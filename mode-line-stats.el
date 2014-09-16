@@ -441,9 +441,9 @@ FMT-TYPE is the format type \(:mode-line-format or :buffer-format\)."
   (let ((modules (reverse mls-modules))
         (acc-string nil))
     (dolist (module-sym modules)
-      (setq acc-string (add-to-list 'acc-string
-                                    (mls-run-module (format "%s" module-sym)
-                                                    :mode-line-format) )))
+      (add-to-list 'acc-string
+                   (mls-run-module (format "%s" module-sym)
+                                   :mode-line-format)))
     (setq mls-mode-line-string acc-string)
     (force-mode-line-update)))
 
