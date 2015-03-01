@@ -179,7 +179,7 @@ Return a list."
   (interactive)
   (when (fboundp 'mls-buffer-refresh)
     (mls-buffer-refresh))
-  (force-mode-line-update)
+  (mls-refresh)
   (sit-for 0))
 
 (provide 'mls-module)

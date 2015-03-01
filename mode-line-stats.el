@@ -124,6 +124,7 @@
 
 
 ;;; Code:
+(require 'dash)
 (require 'mls-module)
 (require 'mls-buffer)
 
@@ -139,6 +140,10 @@
 
 (defvar mls-modules '(cpu memory disk misc sensors)
   "Modules enabled.")
+
+(defvar mls-mode-line-string ""
+  "The entry to the mode line.")
+(put 'mls-mode-line-string 'risky-local-variable t)
 
 (defvar mls-format-keys '(:mode-line-format :buffer-format :monitor-format))
 
@@ -191,16 +196,6 @@ but it will be restored after that.")
      :background "#cc6666" :foreground "#1d1f21"))
   "Critical face used in primary mode-line."
   :group 'mode-line-stats)
-
-(defvar mls-format-primary nil
-  "Primary format to show stats.
-\(this will be appended in the default mode-line or header-line\)")
-
-(defvar mls-format nil
-  "Contains the original mode line plus the primary one.")
-
-(defvar mls-format-backup nil
-  "Backup original format \(mode-line or header-line\).")
 
 (defvar mls-no-data-string "?"
   "String to show while loading data.")
@@ -332,14 +327,6 @@ If NORMALIZEP is nil it will use custom formatters."
     (setq result (mls-get-format-info result normalizep))
     (mapcar #'(lambda (a) (car a)) result)))
 
-(defun mls-find-formatter-position (formatter list)
-  "Find the position of the FORMATTER in the LIST."
-  (let* ((total (length list))
-         (items (member formatter list))
-         (remain (length items)))
-    (when items
-      (- total remain))))
-
 (defun mls-get-current-monitor-level (module values)
   "Return the current level name of the hook formatter.
 MODULE is a module plist.
@@ -353,7 +340,7 @@ VALUES is a list of data values."
 
     (when fmt-info
       (setq fmt (mls-normalize-formatter (car fmt-info)))
-      (setq index (mls-find-formatter-position fmt formatters))
+      (setq index (-elem-index fmt formatters))
       (setq value (mls-normalize-value (nth index values)))
       (when value
         (mls-get-level module fmt value)))))
@@ -380,7 +367,7 @@ FMT-TYPE is the format type, usually :mode-line-format or :buffer-format."
       (setq fmt-sane (mls-normalize-formatter fmt))
       (setq regexp (concat fmt (when comment
                                  (format "{%s}" comment))))
-      (setq index (mls-find-formatter-position fmt-sane active-formatters))
+      (setq index (-elem-index fmt-sane active-formatters))
       (setq value (mls-normalize-value (nth index data)))
       (setq value (mls-pretty-value value
                                     (mls-get-face module fmt-sane value fmt-type)
@@ -436,8 +423,8 @@ FMT-TYPE: format type."
       (mls-module-start module-name)
       (mls-module-set module-name :running t))))
 
-(defun mls-display (module-name fmt-type)
-  "Display the module in the mode-line.
+(defun mls-run-module (module-name fmt-type)
+  "Run the module.
 MODULE-NAME corresponds to module name.
 FMT-TYPE is the format type \(:mode-line-format or :buffer-format\)."
   (when (mls-enabled-module-p module-name)
@@ -449,91 +436,71 @@ FMT-TYPE is the format type \(:mode-line-format or :buffer-format\)."
       (mls-run-hook module-backup data fmt-type)
       (mls-process module-backup data fmt-type))))
 
-(defun mls-get-position ()
-  "Get the format symbol acording to mls-position.
-If `mls-position is :left or :right it will return
-'mode-line-format.  For :global-mode-string it will
-return 'global-mode-string and for :header-line it
-will return 'header-line-format."
-  (cond ((eq mls-position :header-line)
-         'header-line-format)
-        ((eq mls-position :global-mode-string)
-         'global-mode-string)
-        (t 'mode-line-format)))
-
-(defun mls-backup-format ()
-  "Backup the current 'mode-line-format'."
-  (let ((fmt (symbol-value (mls-get-position))))
-    (setq mls-format-backup fmt)))
-
-(defun mls-restore-format ()
-  "Restore the backup of 'mode-line-format'."
-  (let ((target (mls-get-position)))
-    (set-default target mls-format-backup)
-    (set target mls-format-backup)
-    (setq mls-format-backup nil)
+(defun mls-refresh ()
+  "Refresh mode-line-stats."
+  (let ((modules (reverse mls-modules))
+        (acc-string nil))
+    (dolist (module-sym modules)
+      (add-to-list 'acc-string
+                   (mls-run-module (format "%s" module-sym)
+                                   :mode-line-format)))
+    (setq mls-mode-line-string acc-string)
     (force-mode-line-update)))
 
-(defun mls-set-position (position)
-  "Set the POSITION for mls."
-  (cond ((eq position :left)
-         (setq mls-format
-               (cons mls-format-primary
-                     mls-format-backup)))
-        ((eq position :right)
-         (setq mls-format (copy-tree mls-format-backup))
-         (setf (cdr (last mls-format)) mls-format-primary))
-        ((eq position :global-mode-string)
-         (push " " global-mode-string)
-         (push mls-format-primary global-mode-string)
-         (setq mls-format mode-line-format))
-        ((eq position :header-line)
-         (setq mls-format
-               (cons mls-format-primary
-                     mls-format-backup)))))
+(defun mls-cleanup ()
+  "Remove mls from mode-line."
+  (let* ((target (cond ((eq mls-position :header-line)
+                        'header-line-format)
+                       ((eq mls-position :global-mode-string)
+                        'global-mode-string)
+                       (t 'mode-line-format)))
+         (value (-remove '(lambda(x)
+                            (equal x 'mls-mode-line-string))
+                         (symbol-value target))))
+    (set-default target value)
+    (set target value)))
 
-(defun mls-mode-line-setup ()
-  "Add mode-line-stats format into currrent mode-line."
-  (unless mls-format-primary
-    (mls-generate-mode-line-format))
+(defun mls-init (position)
+  "Set the POSITION for mls."
+  (let ((value nil))
+    (mls-cleanup)
+    (setq mls-position position)
+
+    (cond ((eq position :left)
+           ;; Workaround: mode-line won't show if first elem is not a string
+           (setq value (cond ((stringp (-first-item mode-line-format))
+                              mode-line-format)
+                             (t (-insert-at 0 "" mode-line-format))))
+           (setq value (-insert-at 1 'mls-mode-line-string value))
+           (setq-default mode-line-format value)
+           (setq mode-line-format value))
+          ((eq position :right)
+           (setq value (-snoc 'mls-mode-line-string mode-line-format))
+           (setq-default mode-line-format value)
+           (setq mode-line-format value))
+          ((eq position :global-mode-string)
+           (push " " global-mode-string)
+           (push 'mls-mode-line-string global-mode-string))
+          ((eq position :header-line)
+           (setq value (-insert-at 0 'mls-mode-line-string
+                                   header-line-format))
+           (setq-default header-line-format value)
+           (setq header-line-format value)))
+    (mls-refresh)))
+
+(defun mls-turn-on ()
+  "Turn on mode-line-stats mode."
+  (dolist (module-sym mls-modules)
+    (mls-enable-module (symbol-name module-sym)))
 
   (unless mls-buffer
     (mls-buffer-init))
 
-  (mls-set-position mls-position))
-
-(defun mls-generate-mode-line-format ()
-  "Generate the mode line format using `mls-modules`."
-  (let ((mode-line-format-sym 'mls-format-primary)
-        (modules (reverse mls-modules)))
-    (dolist (module-sym modules)
-      (push `(:eval (mls-display ,(format "%s" module-sym) :mode-line-format))
-            (symbol-value mode-line-format-sym)))))
-
-(defun mls-enable-mode-line ()
-  "Enable mode-line format."
-  (let ((target (if (eq mls-position :header-line)
-                    'header-line-format
-                  'mode-line-format)))
-    (set-default target mls-format)
-    (set target mls-format)))
-
-(defun mls-turn-on ()
-  "Turn on mode-line-stats mode."
-  ;; Backup mode line
-  (unless mls-format-backup
-    (mls-backup-format))
-
-  (dolist (module-sym mls-modules)
-    (mls-enable-module (symbol-name module-sym)))
-
-  (mls-mode-line-setup)
-
-  (mls-enable-mode-line))
+  (mls-init mls-position))
 
 (defun mls-turn-off ()
   "Turn off mode-line-stats mode."
-  (mls-restore-format)
+  (mls-cleanup)
 
   (dolist (module-sym mls-modules)
     (mls-disable-module (symbol-name module-sym))))
