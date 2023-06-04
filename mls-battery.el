@@ -42,7 +42,7 @@
 (defvar mls-battery-timer nil)
 (defvar mls-battery-mode-line-string "")
 
-(defvar mls-battery-battery-format "%c %r %B %d %L %p %m %h %t")
+(defvar mls-battery-battery-format "%c %r %B %d %L %p %m %h %t %b")
 
 (defvar mls-battery-settings
   '((:formats
@@ -141,7 +141,9 @@
     (cons "h" (lambda (stats)
                 (car (nth 7 stats))))
     (cons "t" (lambda (stats)
-                (car (nth 8 stats))))))
+                (car (nth 8 stats))))
+    (cons "b" (lambda (stats)
+                (car (nth 9 stats))))))
 
 (provide 'mls-battery)
 ;;; mls-battery.el ends here
