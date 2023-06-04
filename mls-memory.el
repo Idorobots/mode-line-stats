@@ -58,6 +58,7 @@
 (defvar mls-memory-formatters nil)
 (defvar mls-memory-timer nil)
 (defvar mls-memory-mode-line-string "")
+(defvar mls-memory-shell-command "free -o -m | tail -n2")
 
 (defvar mls-memory-settings
   '((:formats
@@ -130,7 +131,7 @@
   (let ((stats (mapcar #'split-string
                  (remove-if (lambda (str) (string= str ""))
                    (split-string
-                     (shell-command-to-string "free -o -m | tail -n2")
+                     (shell-command-to-string mls-memory-shell-command)
                      "\n")))))
     (mapcar (lambda (lst)
               (cons (car lst)
