@@ -113,10 +113,27 @@
   (let ((stats (mls-battery-fetch)))
     (mls-format-expand mls-battery-formatters mls-battery-format stats)))
 
+(defun mls-battery-parse-stats-string (s)
+  (let (r)
+    (when (string-match (concat "\\([0-9\.]+\\)[ ]+"
+                                "\\([0-9\.]+\\( mW\\)*\\)[ ]+"
+                                "\\([^ ]+\\)[ ]+"
+                                "\\([^ ]+\\)[ ]+"
+                                "\\([^ ]+\\)[ ]+"
+                                "\\([^ ]+\\)[ ]+"
+                                "\\([^ ]+\\)[ ]+"
+                                "\\([^ ]+\\)[ ]+"
+                                "\\([^ ]+\\)")
+                        s)
+      (dolist (i '(1 2 4 5 6 7 8 9 10))
+        (push (match-string i s) r))
+      (reverse r))))
+
 (defun mls-battery-fetch ()
   "Return a bunch of disk stats in a form of an alist."
   (let ((stats (mapcar #'split-string
-                       (split-string (substring-no-properties battery-mode-line-string) " "))))
+                       (mls-battery-parse-stats-string
+                        (substring-no-properties battery-mode-line-string)))))
     (mapcar (lambda (lst)
               (cons (car lst)
                     (mapcar #'string-to-number (cdr lst))))
